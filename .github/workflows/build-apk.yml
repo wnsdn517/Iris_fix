@@ -31,7 +31,7 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: Build ${{ github.run_number }}
           files: |
-            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/debug/*.apk
             iris_control_termux
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
