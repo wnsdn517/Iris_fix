@@ -26,9 +26,7 @@ jobs:
         run: ./gradlew assembleRelease
 
       - name: Rename outputs
-        run: |
-          cp app/build/outputs/apk/release/app-release-unsigned.apk Iris.apk || \
-          cp app/build/outputs/apk/release/app-release.apk Iris.apk
+        run: cp app/build/outputs/apk/release/*.apk Iris.apk
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
