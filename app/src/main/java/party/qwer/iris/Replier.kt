@@ -97,6 +97,38 @@ class Replier {
         }
 
 
+        fun sendWithAttachment(room: Long, msg: String, attachment: String) {
+            coroutineScope.launch {
+                messageChannel.send(SendMessageRequest {
+                    sendWithAttachmentInternal(room, msg, attachment)
+                })
+            }
+        }
+
+        private fun sendWithAttachmentInternal(room: Long, msg: String, attachment: String) {
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                setPackage("com.kakao.talk")
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, msg)
+                putExtra("EXTRA_CHAT_ATTACHMENT", attachment)
+                putExtra("key_id", room)
+                putExtra("key_type", 1)
+                putExtra("key_from_direct_share", true)
+                component = ComponentName(
+                    "com.kakao.talk",
+                    "com.kakao.talk.activity.RecentExcludeIntentFilterActivity"
+                )
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+
+            try {
+                AndroidHiddenApi.startActivity(intent)
+            } catch (e: Exception) {
+                System.err.println("Error sending message with attachment: $e")
+                throw e
+            }
+        }
+
         fun sendPhoto(room: Long, base64ImageDataString: String) {
             coroutineScope.launch {
                 messageChannel.send(SendMessageRequest {
