@@ -111,12 +111,8 @@ class Replier {
             mediaScan(uri)
 
             val mimeType = when (file.extension.lowercase()) {
-                "mp4", "mkv", "avi", "mov" -> "video/mp4"
-                "mp3" -> "audio/mpeg"
-                "aac" -> "audio/aac"
-                "ogg" -> "audio/ogg"
-                "m4a" -> "audio/mp4"
-                "wav" -> "audio/wav"
+                "mp4", "mkv", "avi", "mov" -> "video/*"
+                "mp3", "aac", "ogg", "m4a", "wav" -> "audio/*"
                 "pdf" -> "application/pdf"
                 "zip" -> "application/zip"
                 "txt" -> "text/plain"
