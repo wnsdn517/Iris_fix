@@ -173,12 +173,22 @@ class IrisServer(
                     val threadId = replyRequest.threadId?.toLong()
 
                     when (replyRequest.type) {
-                        ReplyType.TEXT -> Replier.sendMessage(
-                            notificationReferer,
-                            roomId,
-                            replyRequest.data.jsonPrimitive.content,
-                            threadId
-                        )
+                        ReplyType.TEXT -> {
+                            if (replyRequest.attachment != null) {
+                                Replier.sendWithAttachment(
+                                    roomId,
+                                    replyRequest.data.jsonPrimitive.content,
+                                    replyRequest.attachment
+                                )
+                            } else {
+                                Replier.sendMessage(
+                                    notificationReferer,
+                                    roomId,
+                                    replyRequest.data.jsonPrimitive.content,
+                                    threadId
+                                )
+                            }
+                        }
 
                         ReplyType.IMAGE -> Replier.sendPhoto(
                             roomId, replyRequest.data.jsonPrimitive.content
