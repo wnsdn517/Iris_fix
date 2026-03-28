@@ -13,4 +13,7 @@ enum class ReplyType {
 
     @SerialName("image_multiple")
     IMAGE_MULTIPLE,
+
+    @SerialName("file")
+    FILE,
 }

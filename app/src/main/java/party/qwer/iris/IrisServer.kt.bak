@@ -173,22 +173,12 @@ class IrisServer(
                     val threadId = replyRequest.threadId?.toLong()
 
                     when (replyRequest.type) {
-                        ReplyType.TEXT -> {
-                            if (replyRequest.attachment != null) {
-                                Replier.sendWithAttachment(
-                                    roomId,
-                                    replyRequest.data.jsonPrimitive.content,
-                                    replyRequest.attachment
-                                )
-                            } else {
-                                Replier.sendMessage(
-                                    notificationReferer,
-                                    roomId,
-                                    replyRequest.data.jsonPrimitive.content,
-                                    threadId
-                                )
-                            }
-                        }
+                        ReplyType.TEXT -> Replier.sendMessage(
+                            notificationReferer,
+                            roomId,
+                            replyRequest.data.jsonPrimitive.content,
+                            threadId
+                        )
 
                         ReplyType.IMAGE -> Replier.sendPhoto(
                             roomId, replyRequest.data.jsonPrimitive.content
@@ -197,11 +187,6 @@ class IrisServer(
                         ReplyType.IMAGE_MULTIPLE -> Replier.sendMultiplePhotos(
                             roomId,
                             replyRequest.data.jsonArray.map { it.jsonPrimitive.content })
-
-                        ReplyType.FILE -> Replier.sendFile(
-                            roomId,
-                            replyRequest.data.jsonPrimitive.content
-                        )
                     }
 
                     call.respond(ApiResponse(success = true, message = "success"))
