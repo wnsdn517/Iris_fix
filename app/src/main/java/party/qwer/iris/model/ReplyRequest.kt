@@ -9,4 +9,5 @@ data class ReplyRequest(
     val room: String,
     val data: JsonElement,
     val threadId: String? = null,
+    val attachment: String? = null,
 )
