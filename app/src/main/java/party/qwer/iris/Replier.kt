@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Base64
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -107,58 +108,27 @@ class Replier {
 
         private fun sendFileInternal(room: Long, filePath: String) {
             val file = File(filePath)
-            val uri = Uri.fromFile(file)
-            mediaScan(uri)
+            mediaScan(Uri.fromFile(file))
+            val uri = getContentUri(file)
 
-            val ext = file.extension.lowercase()
-            val isAudio = ext in setOf("mp3", "aac", "ogg", "m4a", "wav", "flac", "tta", "tak", "wma")
-            val mimeType = when (ext) {
-                "mp4", "mkv", "avi", "mov", "wmv", "flv", "ts", "mpg", "mpeg" -> "video/*"
-                "mp3", "aac", "ogg", "m4a", "wav", "flac", "tta", "tak", "wma" -> "audio/*"
-                "pdf" -> "application/pdf"
-                "zip", "gz", "rar", "7z" -> "application/zip"
-                "txt", "md", "csv" -> "text/plain"
-                "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                "hwp" -> "application/x-hwp"
-                else -> "*/*"
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                setPackage("com.kakao.talk")
+                type = getMimeType(file.extension.lowercase())
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra("key_id", room)
+                putExtra("key_type", 1)
+                putExtra("key_from_direct_share", true)
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
             }
-
-            if (isAudio) {
-                // 오디오 파일은 ACTION_SEND_MULTIPLE로 보내야 음성 메시지로 전송됨
-                val uriList = ArrayList<Uri>().apply { add(uri) }
-                val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-                    setPackage("com.kakao.talk")
-                    type = mimeType
-                    putParcelableArrayListExtra(Intent.EXTRA_STREAM, uriList)
-                    putExtra("key_id", room)
-                    putExtra("key_type", 1)
-                    putExtra("key_from_direct_share", true)
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                }
-                try {
-                    AndroidHiddenApi.startActivity(intent)
-                } catch (e: Exception) {
-                    System.err.println("Error sending audio file: $e")
-                    throw e
-                }
-            } else {
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    setPackage("com.kakao.talk")
-                    type = mimeType
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    putExtra("key_id", room)
-                    putExtra("key_type", 1)
-                    putExtra("key_from_direct_share", true)
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                }
-                try {
-                    AndroidHiddenApi.startActivity(intent)
-                } catch (e: Exception) {
-                    System.err.println("Error sending file: $e")
-                    throw e
-                }
+            try {
+                AndroidHiddenApi.startActivity(intent)
+            } catch (e: Exception) {
+                System.err.println("Error sending file: $e")
+                throw e
             }
         }
 
@@ -172,25 +142,12 @@ class Replier {
 
         private fun sendFileWithAttachmentInternal(room: Long, filePath: String, attachment: String) {
             val file = File(filePath)
-            val uri = Uri.fromFile(file)
-            mediaScan(uri)
-
-            val mimeType = when (file.extension.lowercase()) {
-                "mp4", "mkv", "avi", "mov", "wmv", "flv", "ts", "mpg", "mpeg" -> "video/*"
-                "mp3", "aac", "ogg", "m4a", "wav", "flac", "tta", "tak", "wma" -> "audio/*"
-                "pdf" -> "application/pdf"
-                "zip", "gz", "rar", "7z" -> "application/zip"
-                "txt", "md", "csv" -> "text/plain"
-                "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                "hwp" -> "application/x-hwp"
-                else -> "*/*"
-            }
+            mediaScan(Uri.fromFile(file))
+            val uri = getContentUri(file)
 
             val intent = Intent(Intent.ACTION_SEND).apply {
                 setPackage("com.kakao.talk")
-                type = mimeType
+                type = getMimeType(file.extension.lowercase())
                 putExtra(Intent.EXTRA_STREAM, uri)
                 putExtra("EXTRA_CHAT_ATTACHMENT", attachment)
                 putExtra("key_id", room)
@@ -200,7 +157,11 @@ class Replier {
                     "com.kakao.talk",
                     "com.kakao.talk.activity.RecentExcludeIntentFilterActivity"
                 )
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
             }
 
             try {
@@ -282,9 +243,8 @@ class Replier {
                     writeBytes(decodedImage)
                 }
 
-                val imageUri = Uri.fromFile(imageFile)
-                mediaScan(imageUri)
-                imageUri
+                mediaScan(Uri.fromFile(imageFile))
+                getContentUri(imageFile)
             }
 
             if (uris.isEmpty()) {
@@ -299,7 +259,11 @@ class Replier {
                 putExtra("key_id", room)
                 putExtra("key_type", 1)
                 putExtra("key_from_direct_share", true)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
             }
 
             try {
@@ -313,6 +277,44 @@ class Replier {
 
         internal fun interface SendMessageRequest {
             suspend fun send()
+        }
+
+        private fun getMimeType(ext: String): String = when (ext) {
+            "mp4", "mkv", "avi", "mov", "wmv", "flv", "ts", "mpg", "mpeg" -> "video/*"
+            "mp3" -> "audio/mpeg"
+            "aac" -> "audio/aac"
+            "ogg" -> "audio/ogg"
+            "m4a" -> "audio/mp4"
+            "wav" -> "audio/wav"
+            "flac" -> "audio/flac"
+            "wma" -> "audio/x-ms-wma"
+            "tta", "tak" -> "audio/*"
+            "pdf" -> "application/pdf"
+            "zip", "gz", "rar", "7z" -> "application/zip"
+            "txt", "md", "csv" -> "text/plain"
+            "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            "hwp" -> "application/x-hwp"
+            else -> "*/*"
+        }
+
+        private fun getContentUri(file: File): Uri {
+            val context = try {
+                Class.forName("android.app.ActivityThread")
+                    .getMethod("currentApplication")
+                    .invoke(null) as? android.content.Context
+            } catch (_: Exception) { null }
+
+            return if (context != null) {
+                try {
+                    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                } catch (_: Exception) {
+                    Uri.fromFile(file)
+                }
+            } else {
+                Uri.fromFile(file)
+            }
         }
 
         private fun mediaScan(uri: Uri) {
