@@ -83,25 +83,6 @@
             position: relative;
         }
 
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(var(--primary-color), 0.1) 0%, transparent 70%);
-            border-radius: 50%;
-            z-index: -1;
-            animation: pulse-glow 4s ease-in-out infinite;
-        }
-
-        @keyframes pulse-glow {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
-            50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.8; }
-        }
-
         .header h1 {
             font-size: clamp(2rem, 2vw, 4rem);
             font-weight: 800;
@@ -112,24 +93,6 @@
             margin-bottom: 0.5rem;
             margin-left: 1rem;
             letter-spacing: -0.02em;
-            position: relative;
-        }
-
-        .header p {
-            color: var(--text-secondary);
-            font-size: 1.15rem;
-            margin-top: 1rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            text-shadow: 0 0 15px rgba(var(--primary-color), 0.2);
-            position: relative;
-            z-index: 1;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
         }
 
         .card {
@@ -152,17 +115,16 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(var(--primary-color), 0.5), transparent);
+            background: linear-gradient(90deg, transparent, rgba(107, 51, 179, 0.5), transparent);
         }
 
         .card:hover {
             transform: translateY(-8px);
             box-shadow: var(--shadow-elevated);
-            border-color: var(--glass-border);
         }
 
         .card-header {
-            background: linear-gradient(135deg, rgba(var(--primary-color), 0.9), rgba(var(--primary-light), 0.8));
+            background: linear-gradient(135deg, rgba(107, 51, 179, 0.9), rgba(128, 77, 217, 0.8));
             color: white;
             padding: 1rem;
             position: relative;
@@ -170,8 +132,7 @@
         }
 
         .card-header h2 {
-            /* Adjusted: Smaller font size for card headers */
-            font-size: 1.375rem; /* Reduced from 1.75rem */
+            font-size: 1.375rem;
             font-weight: 700;
             display: flex;
             align-items: center;
@@ -214,7 +175,6 @@
         }
 
         .config-item:hover {
-            border-color: var(--glass-border);
             transform: translateY(-4px);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
@@ -224,8 +184,7 @@
         }
 
         .config-item h3 {
-            /* Adjusted: Smaller font size for inner card titles */
-            font-size: 1.125rem; /* Reduced from 1.375rem */
+            font-size: 1.125rem;
             font-weight: 700;
             color: var(--text-primary);
             margin-bottom: 1.5rem;
@@ -237,6 +196,11 @@
         .config-item h3 i {
             color: var(--primary-light);
             font-size: 1.25rem;
+            transition: transform 0.3s ease;
+        }
+
+        .config-item:hover h3 i {
+            transform: scale(1.1) rotate(5deg);
         }
 
         .form-group {
@@ -279,7 +243,7 @@
         select:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 4px rgba(var(--primary-color), 0.1), 0 0 20px rgba(var(--primary-color), 0.2);
+            box-shadow: 0 0 0 4px rgba(107, 51, 179, 0.1), 0 0 20px rgba(107, 51, 179, 0.2);
             transform: translateY(-2px);
         }
 
@@ -292,7 +256,6 @@
         .btn {
             display: inline-flex;
             align-items: center;
-            /* Added: Center align button text horizontally */
             justify-content: center;
             gap: 0.75rem;
             padding: 1rem 2rem;
@@ -327,19 +290,15 @@
             left: 100%;
         }
 
-        .btn:last-of-type {
-            margin-right: 0;
-        }
-
         .btn-primary {
             background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            box-shadow: 0 4px 15px rgba(var(--primary-color), 0.3);
+            box-shadow: 0 4px 15px rgba(107, 51, 179, 0.3);
             color: white;
         }
 
         .btn-primary:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(var(--primary-color), 0.4);
+            box-shadow: 0 8px 25px rgba(107, 51, 179, 0.4);
         }
 
         .btn-secondary {
@@ -357,13 +316,24 @@
 
         .btn-danger {
             background: linear-gradient(135deg, var(--error-color), #992222);
-            box-shadow: 0 4px 15px rgba(var(--error-color), 0.3);
+            box-shadow: 0 4px 15px rgba(179, 51, 51, 0.3);
             color: white;
         }
 
         .btn-danger:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(var(--error-color), 0.4);
+            box-shadow: 0 8px 25px rgba(179, 51, 51, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #1a5c3a);
+            box-shadow: 0 4px 15px rgba(38, 107, 77, 0.3);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(38, 107, 77, 0.4);
         }
 
         .status-section {
@@ -375,6 +345,7 @@
             border: 1px solid var(--glass-border);
             position: relative;
             overflow: hidden;
+            margin-bottom: 2rem;
         }
 
         .status-section::before {
@@ -387,7 +358,7 @@
             background: linear-gradient(90deg, var(--success-color), var(--accent-color));
         }
 
-        .status-section .status-header { /* Targeting the first h2 within status-section */
+        .status-header {
             display: flex;
             align-items: center;
             gap: 1rem;
@@ -395,14 +366,12 @@
         }
 
         .status-section h2 {
-            /* Adjusted: Smaller font size for the Database Observation Status title */
-            font-size: 1.375rem; /* Reduced from 1.75rem */
+            font-size: 1.375rem;
             font-weight: 700;
         }
 
         .status-section h3 {
-            /* Adjusted: Smaller font size for Recent Chat Logs title */
-            font-size: 1.125rem; /* Reduced from 1.375rem */
+            font-size: 1.125rem;
             font-weight: 700;
             color: var(--primary-light);
             margin-bottom: 1.5rem;
@@ -410,7 +379,6 @@
             align-items: center;
             gap: 0.75rem;
         }
-
 
         .status-indicator {
             width: 16px;
@@ -420,38 +388,43 @@
             box-shadow: 0 0 20px currentColor;
         }
 
-        .status-good {
-            background: var(--success-color);
-            color: var(--success-color);
-        }
-
-        .status-bad {
-            background: var(--error-color);
-            color: var(--error-color);
-        }
+        .status-good { background: var(--success-color); color: var(--success-color); }
+        .status-bad  { background: var(--error-color);   color: var(--error-color); }
 
         @keyframes pulse-status {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.7; transform: scale(1.1); }
         }
 
-        .status-text {
-            font-size: 1.25rem;
-            font-weight: 600;
+        .status-text { font-size: 1.25rem; font-weight: 600; }
+        .status-text.good { color: var(--success-color); }
+        .status-text.bad  { color: var(--error-color); }
+
+        .log-filter-bar {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
         }
 
-        .status-text.good {
-            color: var(--success-color);
+        .log-filter-bar input, .log-filter-bar select {
+            flex: 1;
+            min-width: 160px;
+            padding: 0.6rem 1rem;
+            font-size: 0.85rem;
         }
 
-        .status-text.bad {
-            color: var(--error-color);
+        .log-filter-bar .btn {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.8rem;
+            margin: 0;
         }
 
         .log-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 2rem;
+            margin-top: 1rem;
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border-radius: var(--radius-lg);
@@ -461,7 +434,7 @@
         }
 
         .log-table th {
-            background: rgba(var(--primary-color), 0.1);
+            background: rgba(107, 51, 179, 0.1);
             padding: 1.25rem;
             text-align: left;
             font-weight: 700;
@@ -476,15 +449,12 @@
             padding: 1.25rem;
             border-bottom: 1px solid var(--glass-border);
             color: var(--text-secondary);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
-        .log-table tr:hover {
-            background: rgba(var(--primary-color), 0.05);
-        }
-
-        .log-table tr:last-child td {
-            border-bottom: none;
-        }
+        .log-table tr:hover { background: rgba(107, 51, 179, 0.05); }
+        .log-table tr:last-child td { border-bottom: none; }
 
         .response-area {
             background: rgba(15, 23, 42, 0.9);
@@ -501,12 +471,29 @@
             box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
+        .terminal-area {
+            background: #0a0a0a;
+            color: #33ff33;
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            margin-top: 1rem;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            border: 1px solid #1a3a1a;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+            min-height: 120px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
         .notice {
-            background: rgba(var(--warning-color), 0.1);
+            background: rgba(179, 97, 19, 0.1);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(var(--warning-color), 0.3);
+            border: 1px solid rgba(179, 97, 19, 0.3);
             color: var(--warning-color);
-            padding: 0rem;
+            padding: 0.75rem 1rem;
             border-radius: var(--radius-md);
             margin-top: 1rem;
             display: flex;
@@ -523,18 +510,8 @@
             gap: 1rem;
         }
 
-        .input-buttons-group input {
-            width: 100%;
-            flex: none;
-        }
-
-        .input-buttons-group .btn {
-            width: 100%;
-            /* text-align: center; This is handled by justify-content now */
-            margin-right: 0;
-            margin-bottom: 0;
-            flex-shrink: 0;
-        }
+        .input-buttons-group input { width: 100%; flex: none; }
+        .input-buttons-group .btn { width: 100%; margin-right: 0; margin-bottom: 0; flex-shrink: 0; }
 
         .form-row {
             display: flex;
@@ -542,13 +519,8 @@
             align-items: end;
         }
 
-        .form-row .form-group {
-            flex: 1;
-        }
-
-        .form-row .btn {
-            margin-bottom: 0;
-        }
+        .form-row .form-group { flex: 1; }
+        .form-row .btn { margin-bottom: 0; }
 
         .section-grid {
             display: grid;
@@ -556,31 +528,87 @@
             gap: 2rem;
         }
 
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
+        .token-display {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 0.8rem;
+            background: rgba(15, 23, 42, 0.9);
+            color: #a78bfa;
+            padding: 1.5rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--glass-border);
+            word-break: break-all;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
 
-            .header {
-                margin-bottom: 0rem;
-            }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
 
-            .card-body {
-                padding: 1.5rem;
-            }
+        .stat-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            text-align: center;
+        }
 
-            .config-grid {
-                grid-template-columns: 1fr;
-            }
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary-light);
+        }
 
-            .form-row {
-                flex-direction: column;
-                gap: 0;
-            }
+        .stat-card .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 0.25rem;
+        }
 
-            .section-grid {
-                grid-template-columns: 1fr;
-            }
+        .hour-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 80px;
+            padding: 0.5rem 0;
+        }
+
+        .hour-bar {
+            flex: 1;
+            background: linear-gradient(to top, var(--primary-color), var(--primary-light));
+            border-radius: 2px 2px 0 0;
+            min-height: 2px;
+            transition: opacity 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .hour-bar:hover { opacity: 0.8; }
+
+        .hour-bar::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .hour-chart-wrap { margin-bottom: 1.5rem; }
+        .hour-chart-labels { height: 20px; }
+
+        #lastLogs {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.5rem;
         }
 
         .loading {
@@ -593,58 +621,24 @@
             animation: spin 1s ease-in-out infinite;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, var(--primary-color), var(--primary-light)); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: linear-gradient(135deg, var(--primary-dark), var(--primary-color)); }
 
-        ::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-            border-radius: 4px;
-        }
+        .btn:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+        input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
 
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
-        }
-
-        #lastLogs {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 0.5rem;
-        }
-
-        .log-table td {
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
-        .config-item h3 i {
-            transition: transform 0.3s ease;
-        }
-
-        .config-item:hover h3 i {
-            transform: scale(1.1) rotate(5deg);
-        }
-
-        .btn:focus-visible {
-            outline: 2px solid var(--primary-color);
-            outline-offset: 2px;
-        }
-
-        input:focus-visible,
-        textarea:focus-visible,
-        select:focus-visible {
-            outline: 2px solid var(--primary-color);
-            outline-offset: 2px;
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .header { margin-bottom: 0; }
+            .card-body { padding: 1.5rem; }
+            .config-grid { grid-template-columns: 1fr; }
+            .form-row { flex-direction: column; gap: 0; }
+            .section-grid { grid-template-columns: 1fr; }
+            .log-filter-bar { flex-direction: column; }
         }
     </style>
 </head>
@@ -655,6 +649,7 @@
         <h1>Iris Dashboard</h1>
     </div>
 
+    <!-- Configuration Settings -->
     <div class="card">
         <div class="card-header">
             <h2><i class="fas fa-cog"></i> Configuration Settings</h2>
@@ -693,9 +688,7 @@
                                     onclick="updateConfig('endpoint', document.getElementById('newWebServerEndpoint').value)">
                                 Update
                             </button>
-                            <button class="btn btn-danger" onclick="clearEndpoint()">
-                                Clear
-                            </button>
+                            <button class="btn btn-danger" onclick="clearEndpoint()">Clear</button>
                         </div>
                     </div>
                 </div>
@@ -761,6 +754,31 @@
         </div>
     </div>
 
+    <!-- Admin Token -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-key"></i> Admin Token (AOT)</h2>
+        </div>
+        <div class="card-body">
+            <div class="config-item" style="max-width:100%">
+                <h3><i class="fas fa-shield-alt"></i> KakaoTalk Auth Token</h3>
+                <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem;">
+                    Used for KakaoTalk API authentication. Keep this private.
+                </p>
+                <div id="tokenDisplay" class="token-display">Click "Load Token" to fetch the current AOT.</div>
+                <div style="margin-top:1rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
+                    <button class="btn btn-primary" onclick="loadToken()">
+                        <i class="fas fa-download"></i> Load Token
+                    </button>
+                    <button class="btn btn-secondary" onclick="copyToken()">
+                        <i class="fas fa-copy"></i> Copy JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reply + Query side by side -->
     <div class="section-grid">
         <div class="card">
             <div class="card-header">
@@ -772,28 +790,25 @@
                         <label for="replyRoom">Room ID</label>
                         <input type="text" id="replyRoom" name="room" required>
                     </div>
-
                     <div class="form-group">
                         <label for="replyType">Message Type</label>
                         <select id="replyType" name="type" onchange="updateReplyDataPlaceholder()">
                             <option value="text">Text</option>
                             <option value="image">Image (Base64)</option>
                             <option value="image_multiple">Multiple Images (Base64 JSON Array)</option>
+                            <option value="file">File (path)</option>
                         </select>
                     </div>
-
                     <div class="form-group">
                         <label for="replyData">Message Data</label>
                         <textarea id="replyData" name="data" rows="4" required
                                   placeholder="Enter message text"></textarea>
                     </div>
-
                     <div class="form-group">
                         <label for="replyRawJson">Raw JSON Body (override above)</label>
                         <textarea id="replyRawJson" name="rawJson" rows="4"
                                   placeholder='{"room": "", "type": "text", "data": ""}'></textarea>
                     </div>
-
                     <button type="button" class="btn btn-primary"
                             onclick="submitForm('/reply', 'replyForm', 'replyResponseArea')">
                         <i class="fas fa-paper-plane"></i> Send Reply
@@ -813,18 +828,15 @@
                         <label for="querySql">SQL Query</label>
                         <textarea id="querySql" name="query" rows="4" required></textarea>
                     </div>
-
                     <div class="form-group">
-                        <label for="queryBind">Bind Parameters (JSON Array String, optional)</label>
+                        <label for="queryBind">Bind Parameters (JSON Array, optional)</label>
                         <input type="text" id="queryBind" name="bind" placeholder='["value1", "value2"]'>
                     </div>
-
                     <div class="form-group">
                         <label for="queryRawJson">Raw JSON Body (override above)</label>
                         <textarea id="queryRawJson" name="rawJson" rows="4"
                                   placeholder='{"query": "SELECT * FROM chat_logs LIMIT 10"}'></textarea>
                     </div>
-
                     <button type="button" class="btn btn-primary"
                             onclick="submitForm('/query', 'queryForm', 'queryResponseArea')">
                         <i class="fas fa-play"></i> Execute Query
@@ -835,6 +847,56 @@
         </div>
     </div>
 
+    <!-- Shell Command Execution -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-terminal"></i> Shell Command Execution</h2>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="execCommand">Command</label>
+                <input type="text" id="execCommand" placeholder="e.g. ls /sdcard/iris_tmp"
+                       onkeydown="if(event.key==='Enter') execCommand()">
+            </div>
+            <button class="btn btn-primary" onclick="execCommand()">
+                <i class="fas fa-play"></i> Run
+            </button>
+            <button class="btn btn-secondary" onclick="clearTerminal()">
+                <i class="fas fa-trash"></i> Clear
+            </button>
+            <div id="terminalOutput" class="terminal-area">$ ready</div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-chart-bar"></i> Statistics</h2>
+        </div>
+        <div class="card-body">
+            <div class="form-row" style="margin-bottom:1.5rem;flex-wrap:wrap;">
+                <div class="form-group">
+                    <label for="statsRoomId">Room ID (optional)</label>
+                    <input type="text" id="statsRoomId" placeholder="Leave blank for all rooms">
+                </div>
+                <div class="form-group">
+                    <label for="statsUserId">User ID (optional)</label>
+                    <input type="text" id="statsUserId" placeholder="Leave blank for all users">
+                </div>
+                <button class="btn btn-primary" style="margin-bottom:1.5rem;" onclick="loadStats()">
+                    <i class="fas fa-sync"></i> Load Stats
+                </button>
+            </div>
+
+            <div id="statsContent">
+                <p style="color:var(--text-muted);text-align:center;padding:2rem;">
+                    Click "Load Stats" to view statistics.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- DB Status + Chat Logs -->
     <div class="status-section">
         <div class="status-header">
             <h2><i class="fas fa-heartbeat"></i> DB Status</h2>
@@ -843,12 +905,26 @@
             <div class="status-indicator" id="statusIndicator"></div>
             <p class="status-text" id="dbStatus">Checking status...</p>
         </div>
+
         <h3><i class="fas fa-history"></i> Recent Chat Logs</h3>
+        <div class="log-filter-bar">
+            <input type="text" id="filterRoomId" placeholder="Filter by Room ID" style="max-width:220px;">
+            <input type="text" id="filterUserId" placeholder="Filter by User ID" style="max-width:220px;">
+            <button class="btn btn-secondary" onclick="applyLogFilter()">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            <button class="btn btn-secondary" onclick="clearLogFilter()">
+                <i class="fas fa-times"></i> Clear
+            </button>
+        </div>
         <div id="lastLogs"></div>
     </div>
 </div>
 
 <script>
+    let allLogs = [];
+    let tokenData = null;
+
     document.addEventListener('DOMContentLoaded', function () {
         fetchDbStatus();
         setInterval(fetchDbStatus, 5000);
@@ -863,67 +939,237 @@
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
         const seconds = String(date.getSeconds()).padStart(2, '0');
-
         return `${year}:${month}:${day} ${hours}:${minutes}:${seconds}`;
     };
 
     function fetchDbStatus() {
         fetch('/dashboard/status')
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => {
-                const dbStatusElement = document.getElementById('dbStatus');
-                const statusIndicator = document.getElementById('statusIndicator');
-                const lastLogsContainer = document.getElementById('lastLogs');
-                lastLogsContainer.innerHTML = '';
+                const dbStatusEl = document.getElementById('dbStatus');
+                const indicator = document.getElementById('statusIndicator');
 
                 if (data.isObserving) {
-                    dbStatusElement.textContent = data.statusMessage;
-                    dbStatusElement.className = 'status-text good';
-                    statusIndicator.className = 'status-indicator status-good';
+                    dbStatusEl.textContent = data.statusMessage;
+                    dbStatusEl.className = 'status-text good';
+                    indicator.className = 'status-indicator status-good';
                 } else {
-                    dbStatusElement.textContent = data.statusMessage;
-                    dbStatusElement.className = 'status-text bad';
-                    statusIndicator.className = 'status-indicator status-bad';
+                    dbStatusEl.textContent = data.statusMessage;
+                    dbStatusEl.className = 'status-text bad';
+                    indicator.className = 'status-indicator status-bad';
                 }
 
-                if (data.lastLogs && data.lastLogs.length > 0) {
-                    const table = document.createElement('table');
-                    table.className = 'log-table';
-                    const headerRow = table.insertRow();
-                    const headers = ['ID', 'Chat ID', 'User ID', 'Message', 'Created At'];
-                    headers.forEach(headerText => {
-                        const th = document.createElement('th');
-                        th.textContent = headerText;
-                        headerRow.appendChild(th);
-                    });
-
-                    data.lastLogs.forEach(log => {
-                        const row = table.insertRow();
-                        ['_id', 'chat_id', 'user_id', 'message', 'created_at'].forEach(key => {
-                            const cell = row.insertCell();
-
-                            if (key == "created_at") {
-                                cell.textContent = formatUnixTimestamp(log[key] || 0)
-                            } else {
-                                cell.textContent = log[key] || '';
-                            }
-                        });
-                    });
-                    lastLogsContainer.appendChild(table);
-                } else {
-                    lastLogsContainer.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 2rem;">No recent logs available.</p>';
+                if (data.lastLogs) {
+                    allLogs = data.lastLogs;
+                    renderLogs(allLogs);
                 }
             })
-            .catch(error => {
-                console.error('Error fetching DB status:', error);
-                const dbStatusElement = document.getElementById('dbStatus');
-                const statusIndicator = document.getElementById('statusIndicator');
-                dbStatusElement.textContent = 'Error checking DB status';
-                dbStatusElement.className = 'status-text bad';
-                statusIndicator.className = 'status-indicator status-bad';
+            .catch(() => {
+                document.getElementById('dbStatus').textContent = 'Error checking DB status';
+                document.getElementById('dbStatus').className = 'status-text bad';
+                document.getElementById('statusIndicator').className = 'status-indicator status-bad';
             });
     }
 
+    function renderLogs(logs) {
+        const container = document.getElementById('lastLogs');
+        container.innerHTML = '';
+        if (!logs || logs.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">No recent logs available.</p>';
+            return;
+        }
+        const table = document.createElement('table');
+        table.className = 'log-table';
+        const hRow = table.insertRow();
+        ['ID', 'Chat ID', 'User ID', 'Message', 'Created At'].forEach(h => {
+            const th = document.createElement('th');
+            th.textContent = h;
+            hRow.appendChild(th);
+        });
+        logs.forEach(log => {
+            const row = table.insertRow();
+            ['_id', 'chat_id', 'user_id', 'message', 'created_at'].forEach(key => {
+                const cell = row.insertCell();
+                cell.textContent = key === 'created_at' ? formatUnixTimestamp(log[key] || 0) : (log[key] || '');
+            });
+        });
+        container.appendChild(table);
+    }
+
+    function applyLogFilter() {
+        const roomId = document.getElementById('filterRoomId').value.trim();
+        const userId = document.getElementById('filterUserId').value.trim();
+        let filtered = allLogs;
+        if (roomId) filtered = filtered.filter(l => String(l.chat_id) === roomId);
+        if (userId) filtered = filtered.filter(l => String(l.user_id) === userId);
+        renderLogs(filtered);
+    }
+
+    function clearLogFilter() {
+        document.getElementById('filterRoomId').value = '';
+        document.getElementById('filterUserId').value = '';
+        renderLogs(allLogs);
+    }
+
+    // ---- Token ----
+    function loadToken() {
+        const display = document.getElementById('tokenDisplay');
+        display.textContent = 'Loading...';
+        fetch('/aot')
+            .then(r => r.json())
+            .then(data => {
+                tokenData = data.aot;
+                display.textContent = JSON.stringify(data.aot, null, 2);
+            })
+            .catch(e => { display.textContent = 'Error: ' + e.message; });
+    }
+
+    function copyToken() {
+        if (!tokenData) { alert('Load the token first.'); return; }
+        navigator.clipboard.writeText(JSON.stringify(tokenData, null, 2))
+            .then(() => alert('Token copied to clipboard.'))
+            .catch(() => alert('Copy failed.'));
+    }
+
+    // ---- Shell exec ----
+    let terminalHistory = ['$ ready'];
+
+    function execCommand() {
+        const cmd = document.getElementById('execCommand').value.trim();
+        if (!cmd) return;
+        const output = document.getElementById('terminalOutput');
+        output.textContent += '\n$ ' + cmd + '\n';
+        output.scrollTop = output.scrollHeight;
+        document.getElementById('execCommand').value = '';
+
+        fetch('/exec', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ command: cmd })
+        })
+        .then(r => r.json())
+        .then(data => {
+            output.textContent += (data.stdout || '(no output)') + '\n[exit: ' + data.exitCode + ']\n';
+            output.scrollTop = output.scrollHeight;
+        })
+        .catch(e => {
+            output.textContent += 'Error: ' + e.message + '\n';
+            output.scrollTop = output.scrollHeight;
+        });
+    }
+
+    function clearTerminal() {
+        document.getElementById('terminalOutput').textContent = '$ ready';
+    }
+
+    // ---- Stats ----
+    function loadStats() {
+        const roomId = document.getElementById('statsRoomId').value.trim();
+        const userId = document.getElementById('statsUserId').value.trim();
+        let url = '/stats';
+        const params = [];
+        if (roomId) params.push('roomId=' + encodeURIComponent(roomId));
+        if (userId) params.push('userId=' + encodeURIComponent(userId));
+        if (params.length) url += '?' + params.join('&');
+
+        document.getElementById('statsContent').innerHTML =
+            '<p style="color:var(--text-muted);text-align:center;padding:2rem;"><span class="loading"></span> Loading...</p>';
+
+        fetch(url)
+            .then(r => r.json())
+            .then(data => renderStats(data, roomId, userId))
+            .catch(e => {
+                document.getElementById('statsContent').innerHTML =
+                    '<p style="color:var(--error-color);padding:1rem;">Error: ' + e.message + '</p>';
+            });
+    }
+
+    function renderStats(data, roomId, userId) {
+        let html = '';
+
+        // Summary cards
+        if (data.roomStats) {
+            const totalMsgs = data.roomStats.reduce((s, r) => s + parseInt(r.msg_count || 0), 0);
+            html += `<div class="stats-grid">
+                <div class="stat-card"><div class="stat-value">${data.roomStats.length}</div><div class="stat-label">Active Rooms</div></div>
+                <div class="stat-card"><div class="stat-value">${totalMsgs.toLocaleString()}</div><div class="stat-label">Total Messages</div></div>
+            </div>`;
+        }
+
+        // Hourly usage chart
+        if (data.hourlyUsage && data.hourlyUsage.length > 0) {
+            const byHour = new Array(24).fill(0);
+            data.hourlyUsage.forEach(r => { byHour[parseInt(r.hour)] = parseInt(r.count || 0); });
+            const maxVal = Math.max(...byHour, 1);
+            const title = userId ? `User ${userId} Hourly Activity` : 'Bot Hourly Activity';
+            html += `<div class="hour-chart-wrap">
+                <h3 style="color:var(--primary-light);font-size:1rem;font-weight:700;margin-bottom:0.75rem;">
+                    <i class="fas fa-clock"></i> ${title}
+                </h3>
+                <div class="hour-chart">` +
+                byHour.map((v, h) =>
+                    `<div class="hour-bar" style="height:${Math.round((v/maxVal)*100)}%" data-label="${h}" title="${h}시: ${v}회"></div>`
+                ).join('') +
+                `</div><div style="display:flex;justify-content:space-between;font-size:0.6rem;color:var(--text-muted);margin-top:22px;">
+                    <span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span>
+                </div></div>`;
+        }
+
+        // Room stats table
+        if (data.roomStats && data.roomStats.length > 0) {
+            html += buildTable(
+                'Room Statistics',
+                'fas fa-comments',
+                ['Chat ID', 'Messages', 'Last Activity'],
+                data.roomStats,
+                r => [r.chat_id, r.msg_count, r.last_activity ? formatUnixTimestamp(parseInt(r.last_activity)) : '-']
+            );
+        }
+
+        // User stats table
+        if (data.userStats && data.userStats.length > 0) {
+            const isHourly = data.userStats[0] && data.userStats[0].hour !== undefined;
+            if (isHourly) {
+                html += buildTable(
+                    `User ${userId} in Room ${roomId} — Hourly`,
+                    'fas fa-user-clock',
+                    ['Hour', 'Messages'],
+                    data.userStats,
+                    r => [r.hour + 'h', r.msg_count]
+                );
+            } else {
+                html += buildTable(
+                    roomId ? `Users in Room ${roomId}` : 'User Stats',
+                    'fas fa-users',
+                    ['User ID', 'Messages', 'First Message', 'Last Message'],
+                    data.userStats,
+                    r => [r.user_id, r.msg_count,
+                        r.first_at ? formatUnixTimestamp(parseInt(r.first_at)) : '-',
+                        r.last_at  ? formatUnixTimestamp(parseInt(r.last_at))  : '-']
+                );
+            }
+        }
+
+        if (!html) html = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">No data available for the given parameters.</p>';
+        document.getElementById('statsContent').innerHTML = html;
+    }
+
+    function buildTable(title, icon, headers, rows, rowFn) {
+        let html = `<div style="margin-bottom:2rem;">
+            <h3 style="color:var(--primary-light);font-size:1rem;font-weight:700;margin-bottom:1rem;">
+                <i class="${icon}"></i> ${title}
+            </h3>
+            <div style="overflow-x:auto;">
+            <table class="log-table"><tr>` +
+            headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+        rows.forEach(r => {
+            html += '<tr>' + rowFn(r).map(v => `<td>${v ?? ''}</td>`).join('') + '</tr>';
+        });
+        html += '</table></div></div>';
+        return html;
+    }
+
+    // ---- Generic form submit ----
     function submitForm(endpoint, formId, responseAreaId, postDataOverride) {
         const form = document.getElementById(formId);
         const responseArea = document.getElementById(responseAreaId);
@@ -937,108 +1183,72 @@
         if (postDataOverride) {
             formData = postDataOverride;
         } else {
-            let rawJsonTextarea = form ? form.querySelector('[name="rawJson"]') : null;
-            let rawJson = rawJsonTextarea ? rawJsonTextarea.value.trim() : '';
+            const rawJsonTextarea = form ? form.querySelector('[name="rawJson"]') : null;
+            const rawJson = rawJsonTextarea ? rawJsonTextarea.value.trim() : '';
 
             if (rawJson) {
-                try {
-                    formData = JSON.parse(rawJson);
-                } catch (e) {
-                    if (responseArea) responseArea.textContent = 'Error parsing raw JSON: ' + e.message;
-                    return;
-                }
+                try { formData = JSON.parse(rawJson); }
+                catch (e) { if (responseArea) responseArea.textContent = 'Error parsing raw JSON: ' + e.message; return; }
             } else if (form) {
                 if (endpoint === '/query') {
-                    const querySqlElement = document.getElementById('querySql');
-                    const queryBindElement = document.getElementById('queryBind');
-                    formData['query'] = querySqlElement.value;
-                    if (queryBindElement.value.trim()) {
-                        try {
-                            formData['bind'] = JSON.parse(queryBindElement.value);
-                        } catch (e) {
-                            alert("JSON parsing error: " + e);
-                            return;
-                        }
+                    formData['query'] = document.getElementById('querySql').value;
+                    const bindVal = document.getElementById('queryBind').value.trim();
+                    if (bindVal) {
+                        try { formData['bind'] = JSON.parse(bindVal); }
+                        catch (e) { alert('JSON parse error: ' + e); return; }
                     }
                 } else {
-                    const replyTypeElement = form.querySelector('[name="type"]');
-                    const replyDataElement = form.querySelector('[name="data"]');
-                    const messageType = replyTypeElement ? replyTypeElement.value : 'text';
+                    const typeEl = form.querySelector('[name="type"]');
+                    const dataEl = form.querySelector('[name="data"]');
+                    const msgType = typeEl ? typeEl.value : 'text';
 
-                    if (messageType === 'image_multiple') {
-                        formData['data'] = JSON.parse(replyDataElement.value);
-                    } else {
-                        formData['data'] = replyDataElement.value;
+                    formData['data'] = msgType === 'image_multiple' ? JSON.parse(dataEl.value) : dataEl.value;
+                    for (const el of form.elements) {
+                        if (el.name && el.name !== 'rawJson' && el.name !== 'data' && el.name !== 'type')
+                            formData[el.name] = el.value;
                     }
-
-                    for (let element of form.elements) {
-                        if (element.name && element.name !== 'rawJson' && element.name !== 'data' && element.name !== 'type') {
-                            formData[element.name] = element.value;
-                        }
-                    }
-                    if (replyTypeElement) {
-                        formData['type'] = replyTypeElement.value;
-                    }
+                    if (typeEl) formData['type'] = typeEl.value;
                 }
             }
         }
 
-        console.log("Sending FormData:", formData);
-
         fetch(endpoint, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         })
-            .then(response => response.json())
-            .then(data => {
-                if (responseArea) responseArea.textContent = JSON.stringify(data, null, 2);
-                if (endpoint.startsWith('/config/')) {
-                    if (data.success) {
-                        alert('Config updated successfully: ' + data.message);
-                        location.reload();
-                    } else {
-                        alert('Config update failed: ' + data.error);
-                    }
-                }
-            })
-            .catch(error => {
-                if (responseArea) responseArea.textContent = 'Error: ' + error.message;
-            });
+        .then(r => r.json())
+        .then(data => {
+            if (responseArea) responseArea.textContent = JSON.stringify(data, null, 2);
+            if (endpoint.startsWith('/config/')) {
+                if (data.success) { alert('Config updated: ' + data.message); location.reload(); }
+                else alert('Config update failed: ' + data.error);
+            }
+        })
+        .catch(e => { if (responseArea) responseArea.textContent = 'Error: ' + e.message; });
     }
 
     function updateConfig(type, value) {
-        let url = '/config/' + type;
         let postData = {};
-        if (type === 'endpoint') {
-            postData = { endpoint: value };
-        } else if (type === 'botname') {
-            postData = { botname: value };
-        } else if (type === 'dbrate' || type === 'sendrate') {
-            postData = { rate: value };
-        } else if (type === 'botport') {
-            postData = { port: value };
-        }
-        submitForm(url, null, null, postData);
+        if      (type === 'endpoint') postData = { endpoint: value };
+        else if (type === 'botname')  postData = { botname: value };
+        else if (type === 'dbrate' || type === 'sendrate') postData = { rate: value };
+        else if (type === 'botport')  postData = { port: value };
+        submitForm('/config/' + type, null, null, postData);
     }
 
     function updateReplyDataPlaceholder() {
-        const replyType = document.getElementById('replyType');
-        const replyDataTextarea = document.getElementById('replyData');
-        if (replyType.value === 'image') {
-            replyDataTextarea.placeholder = 'Enter base64 encoded image data';
-        } else if (replyType.value === 'image_multiple') {
-            replyDataTextarea.placeholder = 'Enter base64 encoded image data JSON Array (e.g., ["data1", "data2"])';
-        } else {
-            replyDataTextarea.placeholder = 'Enter message text';
-        }
+        const type = document.getElementById('replyType').value;
+        const ta = document.getElementById('replyData');
+        if (type === 'image') ta.placeholder = 'Enter base64 encoded image data';
+        else if (type === 'image_multiple') ta.placeholder = 'Enter base64 encoded images JSON Array, e.g. ["data1","data2"]';
+        else if (type === 'file') ta.placeholder = '/sdcard/iris_tmp/example.mp3';
+        else ta.placeholder = 'Enter message text';
     }
 
     function clearEndpoint() {
-        document.getElementById('newWebServerEndpoint').value = "";
-        updateConfig('endpoint', "");
+        document.getElementById('newWebServerEndpoint').value = '';
+        updateConfig('endpoint', '');
     }
 </script>
 <div id="configResponseArea" style="display:none;"></div>

