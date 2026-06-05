@@ -330,14 +330,49 @@ class Replier {
                     .invoke(null) as? android.content.Context
             } catch (_: Exception) { null }
 
-            return if (context != null) {
-                try {
+            if (context != null) {
+                return try {
                     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
                 } catch (_: Exception) {
-                    Uri.fromFile(file)
+                    queryOrFallbackUri(file)
                 }
-            } else {
-                Uri.fromFile(file)
+            }
+            return queryOrFallbackUri(file)
+        }
+
+        private fun queryOrFallbackUri(file: File): Uri {
+            queryMediaStoreUri(file)?.let { return it }
+            for (delay in longArrayOf(150L, 300L, 500L)) {
+                Thread.sleep(delay)
+                queryMediaStoreUri(file)?.let { return it }
+            }
+            return Uri.fromFile(file)
+        }
+
+        private fun queryMediaStoreUri(file: File): Uri? {
+            val ext = file.extension.lowercase()
+            val sub = when {
+                ext in setOf("mp3","aac","ogg","m4a","wav","flac","tta","tak","wma") -> "audio/media"
+                ext in setOf("mp4","mkv","avi","mov","wmv","flv","ts","mpg","mpeg","m4v") -> "video/media"
+                ext in setOf("jpg","jpeg","png","gif","bmp","webp") -> "images/media"
+                else -> "file"
+            }
+            return try {
+                val queryPath = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
+                val escapedPath = queryPath.replace("'", "''")
+                val proc = ProcessBuilder(
+                    "content", "query",
+                    "--uri", "content://media/external/$sub",
+                    "--where", "_data='$escapedPath'",
+                    "--projection", "_id"
+                ).redirectErrorStream(true).start()
+                val output = proc.inputStream.bufferedReader().readText()
+                val finished = proc.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)
+                if (!finished) { proc.destroyForcibly(); return null }
+                val id = Regex("_id=(\\d+)").find(output)?.groupValues?.get(1) ?: return null
+                Uri.parse("content://media/external/$sub/$id")
+            } catch (_: Exception) {
+                null
             }
         }
 
