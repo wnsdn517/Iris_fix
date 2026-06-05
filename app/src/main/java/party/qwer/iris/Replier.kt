@@ -341,8 +341,12 @@ class Replier {
         }
 
         private fun queryOrFallbackUri(file: File): Uri {
+            // Query first — hits instantly if already indexed
             queryMediaStoreUri(file)?.let { return it }
-            for (delay in longArrayOf(150L, 300L, 500L)) {
+            // Not indexed yet: try direct MediaStore insert (avoids scan race)
+            insertMediaStoreEntry(file)?.let { return it }
+            // Last resort: poll while async mediaScan broadcast is processed
+            for (delay in longArrayOf(200L, 400L, 700L)) {
                 Thread.sleep(delay)
                 queryMediaStoreUri(file)?.let { return it }
             }
@@ -357,23 +361,65 @@ class Replier {
                 ext in setOf("jpg","jpeg","png","gif","bmp","webp") -> "images/media"
                 else -> "file"
             }
+            // /sdcard/ is a symlink → MediaStore may store the canonical path.
+            // Query with both forms so either representation matches.
+            val canonical = try { file.canonicalPath } catch (_: Exception) { null }
+            val paths = listOfNotNull(canonical, file.absolutePath).distinct()
+            for (path in paths) {
+                val uri = runMediaStoreQuery("content://media/external/$sub", path)
+                if (uri != null) return uri
+            }
+            return null
+        }
+
+        private fun runMediaStoreQuery(tableUri: String, path: String): Uri? {
             return try {
-                val queryPath = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
-                val escapedPath = queryPath.replace("'", "''")
+                val escaped = path.replace("'", "''")
                 val proc = ProcessBuilder(
                     "content", "query",
-                    "--uri", "content://media/external/$sub",
-                    "--where", "_data='$escapedPath'",
+                    "--uri", tableUri,
+                    "--where", "_data='$escaped'",
                     "--projection", "_id"
                 ).redirectErrorStream(true).start()
                 val output = proc.inputStream.bufferedReader().readText()
-                val finished = proc.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)
-                if (!finished) { proc.destroyForcibly(); return null }
+                val ok = proc.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)
+                if (!ok) { proc.destroyForcibly(); return null }
                 val id = Regex("_id=(\\d+)").find(output)?.groupValues?.get(1) ?: return null
-                Uri.parse("content://media/external/$sub/$id")
-            } catch (_: Exception) {
-                null
+                Uri.parse("$tableUri/$id")
+            } catch (_: Exception) { null }
+        }
+
+        private fun insertMediaStoreEntry(file: File): Uri? {
+            val mimeType = getMimeType(file.extension.lowercase())
+            val sub = when {
+                mimeType.startsWith("audio/") -> "audio/media"
+                mimeType.startsWith("video/") -> "video/media"
+                else -> return null
             }
+            val insertPath = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
+            for (volume in listOf("external", "external_primary")) {
+                val uri = runMediaStoreInsert("content://media/$volume/$sub", insertPath, file.name, mimeType)
+                if (uri != null) return uri
+            }
+            return null
+        }
+
+        private fun runMediaStoreInsert(tableUri: String, path: String, name: String, mime: String): Uri? {
+            return try {
+                val proc = ProcessBuilder(
+                    "content", "insert",
+                    "--uri", tableUri,
+                    "--bind", "_data:s:$path",
+                    "--bind", "_display_name:s:$name",
+                    "--bind", "mime_type:s:$mime"
+                ).redirectErrorStream(true).start()
+                val output = proc.inputStream.bufferedReader().readText()
+                val ok = proc.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)
+                if (!ok) { proc.destroyForcibly(); return null }
+                // Output: "New record inserted, URI: content://media/external/audio/media/123"
+                Regex("URI:\\s*(content://\\S+)").find(output)?.groupValues?.get(1)
+                    ?.let { Uri.parse(it) }
+            } catch (_: Exception) { null }
         }
 
         private fun mediaScan(uri: Uri) {
