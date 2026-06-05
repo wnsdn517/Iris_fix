@@ -110,19 +110,33 @@ class Replier {
             val file = File(filePath)
             mediaScan(Uri.fromFile(file))
             val uri = getContentUri(file)
+            val mimeType = getMimeType(file.extension.lowercase())
 
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                setPackage("com.kakao.talk")
-                type = getMimeType(file.extension.lowercase())
-                putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra("key_id", room)
-                putExtra("key_type", 1)
-                putExtra("key_from_direct_share", true)
-                addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+            val flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+
+            // text/* files must be sent via ACTION_SEND_MULTIPLE + */* to be received correctly
+            val intent = if (mimeType.startsWith("text/")) {
+                Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                    setPackage("com.kakao.talk")
+                    type = "*/*"
+                    putParcelableArrayListExtra(Intent.EXTRA_STREAM, arrayListOf(uri))
+                    putExtra("key_id", room)
+                    putExtra("key_type", 1)
+                    putExtra("key_from_direct_share", true)
+                    addFlags(flags)
+                }
+            } else {
+                Intent(Intent.ACTION_SEND).apply {
+                    setPackage("com.kakao.talk")
+                    type = mimeType
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra("key_id", room)
+                    putExtra("key_type", 1)
+                    putExtra("key_from_direct_share", true)
+                    addFlags(flags)
+                }
             }
             try {
                 AndroidHiddenApi.startActivity(intent)
@@ -288,10 +302,16 @@ class Replier {
             "wav" -> "audio/wav"
             "flac" -> "audio/flac"
             "wma" -> "audio/x-ms-wma"
-            "tta", "tak" -> "audio/*"
+            "tta" -> "audio/x-tta"
+            "tak" -> "audio/x-tak"
             "pdf" -> "application/pdf"
-            "zip", "gz", "rar", "7z" -> "application/zip"
-            "txt", "md", "csv" -> "text/plain"
+            "zip" -> "application/zip"
+            "gz" -> "application/gzip"
+            "rar" -> "application/x-rar-compressed"
+            "7z" -> "application/x-7z-compressed"
+            "txt" -> "text/plain"
+            "md" -> "text/markdown"
+            "csv" -> "text/csv"
             "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -303,6 +323,10 @@ class Replier {
             val context = try {
                 Class.forName("android.app.ActivityThread")
                     .getMethod("currentApplication")
+                    .invoke(null) as? android.content.Context
+            } catch (_: Exception) { null } ?: try {
+                Class.forName("android.app.AppGlobals")
+                    .getMethod("getInitialApplication")
                     .invoke(null) as? android.content.Context
             } catch (_: Exception) { null }
 
