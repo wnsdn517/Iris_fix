@@ -75,6 +75,7 @@ android.applicationVariants.all {
 
 
 dependencies {
+    implementation(libs.androidx.core)
     implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.ktor.server.netty)
