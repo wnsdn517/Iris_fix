@@ -198,10 +198,20 @@ class IrisServer(
                             roomId,
                             replyRequest.data.jsonArray.map { it.jsonPrimitive.content })
 
-                        ReplyType.FILE -> Replier.sendFile(
-                            roomId,
-                            replyRequest.data.jsonPrimitive.content
-                        )
+                        ReplyType.FILE -> {
+                            if (replyRequest.attachment != null) {
+                                Replier.sendFileWithAttachment(
+                                    roomId,
+                                    replyRequest.data.jsonPrimitive.content,
+                                    replyRequest.attachment
+                                )
+                            } else {
+                                Replier.sendFile(
+                                    roomId,
+                                    replyRequest.data.jsonPrimitive.content
+                                )
+                            }
+                        }
                     }
 
                     call.respond(ApiResponse(success = true, message = "success"))

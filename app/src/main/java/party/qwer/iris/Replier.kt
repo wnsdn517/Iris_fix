@@ -139,6 +139,53 @@ class Replier {
             }
         }
 
+        fun sendFileWithAttachment(room: Long, filePath: String, attachment: String) {
+            coroutineScope.launch {
+                messageChannel.send(SendMessageRequest {
+                    sendFileWithAttachmentInternal(room, filePath, attachment)
+                })
+            }
+        }
+
+        private fun sendFileWithAttachmentInternal(room: Long, filePath: String, attachment: String) {
+            val file = File(filePath)
+            val uri = Uri.fromFile(file)
+            mediaScan(uri)
+
+            val mimeType = when (file.extension.lowercase()) {
+                "mp4", "mkv", "avi", "mov" -> "video/*"
+                "mp3", "aac", "ogg", "m4a", "wav" -> "audio/*"
+                "pdf" -> "application/pdf"
+                "zip" -> "application/zip"
+                "txt" -> "text/plain"
+                "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                else -> "*/*"
+            }
+
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                setPackage("com.kakao.talk")
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra("EXTRA_CHAT_ATTACHMENT", attachment)
+                putExtra("key_id", room)
+                putExtra("key_type", 1)
+                putExtra("key_from_direct_share", true)
+                component = ComponentName(
+                    "com.kakao.talk",
+                    "com.kakao.talk.activity.RecentExcludeIntentFilterActivity"
+                )
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+
+            try {
+                AndroidHiddenApi.startActivity(intent)
+            } catch (e: Exception) {
+                System.err.println("Error sending file with attachment: $e")
+                throw e
+            }
+        }
+
         fun sendWithAttachment(room: Long, msg: String, attachment: String) {
             coroutineScope.launch {
                 messageChannel.send(SendMessageRequest {
