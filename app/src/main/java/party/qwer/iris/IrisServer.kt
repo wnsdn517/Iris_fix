@@ -201,7 +201,7 @@ class IrisServer(
                             roomId,
                             replyRequest.data.jsonArray.map { it.jsonPrimitive.content })
 
-                        ReplyType.FILE -> {
+                        ReplyType.FILE, ReplyType.AUDIO -> {
                             if (replyRequest.attachment != null) {
                                 Replier.sendFileWithAttachment(
                                     roomId,
