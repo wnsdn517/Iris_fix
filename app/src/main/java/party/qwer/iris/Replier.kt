@@ -2,9 +2,12 @@ package party.qwer.iris
 
 import android.app.RemoteInput
 import android.content.ComponentName
+import android.content.ContentUris
+import android.content.ContentValues
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Base64
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.CoroutineScope
@@ -319,20 +322,41 @@ class Replier {
             else -> "*/*"
         }
 
+        // Obtained the same way as the `content` CLI tool; cached for reuse.
+        private val systemContext: android.content.Context? by lazy {
+            try {
+                val cls = Class.forName("android.app.ActivityThread")
+                val thread = cls.getMethod("systemMain").invoke(null)
+                cls.getMethod("getSystemContext").invoke(thread) as? android.content.Context
+            } catch (e: Exception) {
+                System.err.println("[Replier] systemContext unavailable: $e")
+                null
+            }
+        }
+
+        private val audioExts = setOf("mp3","aac","ogg","m4a","wav","flac","tta","tak","wma")
+        private val videoExts = setOf("mp4","mkv","avi","mov","wmv","flv","ts","mpg","mpeg","m4v")
+        private val imageExts = setOf("jpg","jpeg","png","gif","bmp","webp")
+
+        private fun mediaTableUri(ext: String): Uri? = when {
+            ext in audioExts -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            ext in videoExts -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            ext in imageExts -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            else -> null
+        }
+
         private fun getContentUri(file: File): Uri {
-            val context = try {
+            val appCtx = try {
                 Class.forName("android.app.ActivityThread")
-                    .getMethod("currentApplication")
-                    .invoke(null) as? android.content.Context
+                    .getMethod("currentApplication").invoke(null) as? android.content.Context
             } catch (_: Exception) { null } ?: try {
                 Class.forName("android.app.AppGlobals")
-                    .getMethod("getInitialApplication")
-                    .invoke(null) as? android.content.Context
+                    .getMethod("getInitialApplication").invoke(null) as? android.content.Context
             } catch (_: Exception) { null }
 
-            if (context != null) {
+            if (appCtx != null) {
                 return try {
-                    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                    FileProvider.getUriForFile(appCtx, "${appCtx.packageName}.fileprovider", file)
                 } catch (_: Exception) {
                     queryOrFallbackUri(file)
                 }
@@ -341,12 +365,15 @@ class Replier {
         }
 
         private fun queryOrFallbackUri(file: File): Uri {
-            // Query first — hits instantly if already indexed
+            // 1. Already indexed in MediaStore?
             queryMediaStoreUri(file)?.let { return it }
-            // Not indexed yet: try direct MediaStore insert (avoids scan race)
+            // 2. Synchronous scan (Android 11+/API 30+): returns content:// URI immediately
+            scanAndGetUri(file)?.let { return it }
+            // 3. Direct insert into MediaStore
             insertMediaStoreEntry(file)?.let { return it }
-            // Last resort: poll while async mediaScan broadcast is processed
-            for (delay in longArrayOf(200L, 400L, 700L)) {
+            // 4. Force async scan, poll for up to ~2s
+            mediaScanAm(file)
+            for (delay in longArrayOf(300L, 600L, 1000L)) {
                 Thread.sleep(delay)
                 queryMediaStoreUri(file)?.let { return it }
             }
@@ -354,20 +381,38 @@ class Replier {
         }
 
         private fun queryMediaStoreUri(file: File): Uri? {
-            val ext = file.extension.lowercase()
-            val sub = when {
-                ext in setOf("mp3","aac","ogg","m4a","wav","flac","tta","tak","wma") -> "audio/media"
-                ext in setOf("mp4","mkv","avi","mov","wmv","flv","ts","mpg","mpeg","m4v") -> "video/media"
-                ext in setOf("jpg","jpeg","png","gif","bmp","webp") -> "images/media"
-                else -> "file"
+            val tableUri = mediaTableUri(file.extension.lowercase()) ?: return null
+            val paths = listOfNotNull(
+                try { file.canonicalPath } catch (_: Exception) { null },
+                file.absolutePath
+            ).distinct()
+
+            // In-process via ContentResolver (fastest, no shell spawn)
+            systemContext?.contentResolver?.let { resolver ->
+                for (path in paths) {
+                    val cursor = resolver.query(
+                        tableUri,
+                        arrayOf(MediaStore.MediaColumns._ID),
+                        "${MediaStore.MediaColumns.DATA} = ?",
+                        arrayOf(path), null
+                    ) ?: continue
+                    cursor.use {
+                        if (it.moveToFirst()) {
+                            return ContentUris.withAppendedId(tableUri, it.getLong(0))
+                        }
+                    }
+                }
+                return null
             }
-            // /sdcard/ is a symlink → MediaStore may store the canonical path.
-            // Query with both forms so either representation matches.
-            val canonical = try { file.canonicalPath } catch (_: Exception) { null }
-            val paths = listOfNotNull(canonical, file.absolutePath).distinct()
+
+            // Fallback: shell `content query`
+            val sub = when (tableUri) {
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI -> "audio/media"
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI -> "video/media"
+                else -> "images/media"
+            }
             for (path in paths) {
-                val uri = runMediaStoreQuery("content://media/external/$sub", path)
-                if (uri != null) return uri
+                runMediaStoreQuery("content://media/external/$sub", path)?.let { return it }
             }
             return null
         }
@@ -382,24 +427,62 @@ class Replier {
                     "--projection", "_id"
                 ).redirectErrorStream(true).start()
                 val output = proc.inputStream.bufferedReader().readText()
-                val ok = proc.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)
-                if (!ok) { proc.destroyForcibly(); return null }
-                val id = Regex("_id=(\\d+)").find(output)?.groupValues?.get(1) ?: return null
-                Uri.parse("$tableUri/$id")
+                if (!proc.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)) { proc.destroyForcibly(); return null }
+                Regex("_id=(\\d+)").find(output)?.groupValues?.get(1)?.let { Uri.parse("$tableUri/$it") }
+            } catch (_: Exception) { null }
+        }
+
+        private fun scanAndGetUri(file: File): Uri? {
+            val path = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
+
+            // In-process via ContentResolver.call (what `content call` runs internally)
+            systemContext?.contentResolver?.let { resolver ->
+                return try {
+                    @Suppress("DEPRECATION")
+                    resolver.call(Uri.parse("content://media"), "scan_file", path, null)
+                        ?.getParcelable("uri")
+                } catch (_: Exception) { null }
+            }
+
+            // Fallback: shell `content call --method scan_file`
+            return try {
+                val proc = ProcessBuilder(
+                    "content", "call",
+                    "--uri", "content://media",
+                    "--method", "scan_file",
+                    "--arg", path
+                ).redirectErrorStream(true).start()
+                val output = proc.inputStream.bufferedReader().readText()
+                if (!proc.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) { proc.destroyForcibly(); return null }
+                // Result: Bundle[{uri=content://media/external/audio/media/123}]
+                Regex("uri=(content://[^}\\s,]+)").find(output)?.groupValues?.get(1)?.let { Uri.parse(it) }
             } catch (_: Exception) { null }
         }
 
         private fun insertMediaStoreEntry(file: File): Uri? {
             val mimeType = getMimeType(file.extension.lowercase())
-            val sub = when {
-                mimeType.startsWith("audio/") -> "audio/media"
-                mimeType.startsWith("video/") -> "video/media"
+            val tableUri = when {
+                mimeType.startsWith("audio/") -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                mimeType.startsWith("video/") -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
                 else -> return null
             }
-            val insertPath = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
+            val path = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
+
+            // In-process via ContentResolver.insert
+            systemContext?.contentResolver?.let { resolver ->
+                return try {
+                    resolver.insert(tableUri, ContentValues().apply {
+                        put(MediaStore.MediaColumns.DATA, path)
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, file.name)
+                        put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                    })
+                } catch (_: Exception) { null }
+            }
+
+            // Fallback: shell `content insert`
+            val sub = if (mimeType.startsWith("audio/")) "audio/media" else "video/media"
             for (volume in listOf("external", "external_primary")) {
-                val uri = runMediaStoreInsert("content://media/$volume/$sub", insertPath, file.name, mimeType)
-                if (uri != null) return uri
+                runMediaStoreInsert("content://media/$volume/$sub", path, file.name, mimeType)?.let { return it }
             }
             return null
         }
@@ -414,19 +497,29 @@ class Replier {
                     "--bind", "mime_type:s:$mime"
                 ).redirectErrorStream(true).start()
                 val output = proc.inputStream.bufferedReader().readText()
-                val ok = proc.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)
-                if (!ok) { proc.destroyForcibly(); return null }
+                if (!proc.waitFor(3, java.util.concurrent.TimeUnit.SECONDS)) { proc.destroyForcibly(); return null }
                 // Output: "New record inserted, URI: content://media/external/audio/media/123"
-                Regex("URI:\\s*(content://\\S+)").find(output)?.groupValues?.get(1)
-                    ?.let { Uri.parse(it) }
+                Regex("URI:\\s*(content://\\S+)").find(output)?.groupValues?.get(1)?.let { Uri.parse(it) }
             } catch (_: Exception) { null }
         }
 
+        private fun mediaScanAm(file: File) {
+            val path = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
+            try {
+                ProcessBuilder(
+                    "am", "broadcast",
+                    "-a", "android.intent.action.MEDIA_SCANNER_SCAN_FILE",
+                    "-d", "file://$path",
+                    "--receiver-foreground"
+                ).redirectErrorStream(true).start()
+                    .waitFor(2, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (_: Exception) {}
+        }
+
         private fun mediaScan(uri: Uri) {
-            val mediaScanIntent = Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).apply {
-                data = uri
-            }
-            AndroidHiddenApi.broadcastIntent(mediaScanIntent)
+            AndroidHiddenApi.broadcastIntent(
+                Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).apply { data = uri }
+            )
         }
     }
 }
