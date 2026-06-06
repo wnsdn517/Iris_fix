@@ -341,16 +341,50 @@ class Replier {
         }
 
         private fun queryOrFallbackUri(file: File): Uri {
-            // Query first — hits instantly if already indexed
+            // 1. Already indexed?
             queryMediaStoreUri(file)?.let { return it }
-            // Not indexed yet: try direct MediaStore insert (avoids scan race)
+            // 2. Synchronous scan via content call (Android 11+ / API 30+)
+            scanFileViaCli(file)?.let { return it }
+            // 3. Direct MediaStore insert (blocked by _data restriction on Android 10+, may still work on some ROMs)
             insertMediaStoreEntry(file)?.let { return it }
-            // Last resort: poll while async mediaScan broadcast is processed
-            for (delay in longArrayOf(200L, 400L, 700L)) {
+            // 4. Force async scan via am broadcast, then poll
+            mediaScanAm(file)
+            for (delay in longArrayOf(300L, 600L, 1000L)) {
                 Thread.sleep(delay)
                 queryMediaStoreUri(file)?.let { return it }
             }
             return Uri.fromFile(file)
+        }
+
+        private fun scanFileViaCli(file: File): Uri? {
+            val path = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
+            return try {
+                val proc = ProcessBuilder(
+                    "content", "call",
+                    "--uri", "content://media",
+                    "--method", "scan_file",
+                    "--arg", path
+                ).redirectErrorStream(true).start()
+                val output = proc.inputStream.bufferedReader().readText()
+                val ok = proc.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)
+                if (!ok) { proc.destroyForcibly(); return null }
+                // Result: Bundle[{uri=content://media/external/audio/media/123}]
+                Regex("uri=(content://[^}\\s,]+)").find(output)?.groupValues?.get(1)
+                    ?.let { Uri.parse(it) }
+            } catch (_: Exception) { null }
+        }
+
+        private fun mediaScanAm(file: File) {
+            val path = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
+            try {
+                ProcessBuilder(
+                    "am", "broadcast",
+                    "-a", "android.intent.action.MEDIA_SCANNER_SCAN_FILE",
+                    "-d", "file://$path",
+                    "--receiver-foreground"
+                ).redirectErrorStream(true).start()
+                    .waitFor(2, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (_: Exception) {}
         }
 
         private fun queryMediaStoreUri(file: File): Uri? {
