@@ -149,7 +149,8 @@ class ObserverHelper(
                                 }
                             }
 
-                            storeDecryptedLog(cursor, message, roomName, senderName)
+                            val rawJsonStr = try { JSONObject(raw as Map<*, *>).toString() } catch (_: Exception) { "{}" }
+                            storeDecryptedLog(cursor, message, roomName, senderName, messageType, rawJsonStr)
 
                             val data = JSONObject(
                                 mapOf(
@@ -207,7 +208,14 @@ class ObserverHelper(
     }
 
     @Synchronized
-    private fun storeDecryptedLog(cursor: Cursor, decryptedMessage: String?, roomName: String?, senderName: String?) {
+    private fun storeDecryptedLog(
+        cursor: Cursor,
+        decryptedMessage: String?,
+        roomName: String?,
+        senderName: String?,
+        messageType: String?,
+        rawJson: String?
+    ) {
         val logEntry: MutableMap<String, String?> = HashMap()
         logEntry["_id"] = cursor.getString(cursor.getColumnIndexOrThrow("_id"))
         logEntry["chat_id"] = cursor.getString(cursor.getColumnIndexOrThrow("chat_id"))
@@ -216,6 +224,8 @@ class ObserverHelper(
         logEntry["created_at"] = cursor.getString(cursor.getColumnIndexOrThrow("created_at"))
         logEntry["room_name"] = roomName
         logEntry["sender_name"] = senderName
+        logEntry["type"] = messageType
+        logEntry["raw_json"] = rawJson
 
         lastDecryptedLogs.addFirst(logEntry)
         if (lastDecryptedLogs.size > MAX_LOGS_STORED) {
