@@ -1,1257 +1,970 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iris Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --primary-color: #6b33b3;
-            --primary-dark: #5a289b;
+            --primary: #6b33b3;
             --primary-light: #804dd9;
-            --secondary-color: #0f0f23;
-            --accent-color: #2e6370;
-            --success-color: #266b4d;
-            --warning-color: #b36113;
-            --error-color: #b33333;
-
-            --bg-primary: #030712;
-            --bg-secondary: #111827;
-            --bg-tertiary: #1f2937;
-            --bg-card: linear-gradient(145deg, #111827 0%, #1f2937 100%);
-
-            --text-primary: #f9fafb;
-            --text-secondary: #d1d5db;
-            --text-muted: #9ca3af;
-
-            --border-color: #374151;
-            --border-focus: var(--primary-color);
-
-            --glass-bg: rgba(20, 30, 40, 0.8);
-            --glass-border: rgba(40, 50, 60, 0.4);
-            --shadow-glow: 0 0 40px rgba(var(--primary-color), 0.1);
-            --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.5);
-            --shadow-elevated: 0 25px 50px rgba(0, 0, 0, 0.6);
-
-            --radius-sm: 0.5rem;
-            --radius-md: 0.75rem;
-            --radius-lg: 1rem;
-            --radius-xl: 1.5rem;
+            --primary-dark: #5a289b;
+            --accent: #2e6370;
+            --success: #266b4d;
+            --warning: #b36113;
+            --error: #b33333;
+            --bg: #030712;
+            --bg2: #111827;
+            --bg3: #1f2937;
+            --glass: rgba(20,30,40,0.85);
+            --glass-border: rgba(50,65,80,0.5);
+            --text: #f9fafb;
+            --text2: #d1d5db;
+            --text3: #9ca3af;
+            --r-sm: 0.5rem; --r-md: 0.75rem; --r-lg: 1rem; --r-xl: 1.5rem;
+            --shadow: 0 8px 32px rgba(0,0,0,0.5);
+            --shadow2: 0 25px 50px rgba(0,0,0,0.6);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: radial-gradient(ellipse at top, #1e1b4b 0%, #0f0f23 40%, #030712 100%);
+            min-height: 100vh; color: var(--text); line-height: 1.5; overflow-x: hidden;
+        }
+
+        /* ── Layout ── */
+        .app {
+            display: grid;
+            grid-template-rows: auto 1fr;
             min-height: 100vh;
-            color: var(--text-primary);
-            line-height: 1.6;
-            overflow-x: hidden;
         }
 
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background:
-                radial-gradient(circle at 20% 50%, rgba(var(--primary-color), 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(var(--primary-light), 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 40% 80%, rgba(var(--accent-color), 0.07) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: -1;
+        .topbar {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 0.75rem 1.5rem;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 100;
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .header {
-            text-align: left;
-            margin-bottom: 1rem;
-            position: relative;
-        }
-
-        .header h1 {
-            font-size: clamp(2rem, 2vw, 4rem);
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary-light) 50%, var(--accent-color) 100%);
+        .topbar h1 {
+            font-size: 1.4rem; font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, var(--primary-light) 60%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: #ffffff;
-            margin-bottom: 0.5rem;
-            margin-left: 1rem;
-            letter-spacing: -0.02em;
         }
+
+        .topbar-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text3); }
+        .dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse-s 2s infinite; }
+        .dot.good { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .dot.bad  { background: var(--error);   box-shadow: 0 0 8px var(--error); }
+        @keyframes pulse-s { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.7;transform:scale(1.2)} }
+
+        .nav-tabs {
+            display: flex; gap: 0.25rem;
+        }
+        .nav-tab {
+            padding: 0.4rem 0.9rem; border-radius: var(--r-md); font-size: 0.8rem;
+            font-weight: 600; cursor: pointer; border: 1px solid transparent;
+            transition: all 0.2s; color: var(--text3); background: none;
+            text-transform: uppercase; letter-spacing: 0.4px;
+        }
+        .nav-tab.active, .nav-tab:hover {
+            background: rgba(107,51,179,0.2); color: var(--text); border-color: rgba(107,51,179,0.4);
+        }
+
+        .content { display: none; }
+        .content.active { display: block; }
+
+        /* ── Chat view ── */
+        .chat-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            height: calc(100vh - 55px);
+        }
+
+        /* Room sidebar */
+        .room-sidebar {
+            background: rgba(15,20,30,0.9);
+            border-right: 1px solid var(--glass-border);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+
+        .room-search {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .room-search input {
+            width: 100%; padding: 0.5rem 0.75rem;
+            background: var(--bg3); border: 1px solid var(--glass-border);
+            border-radius: var(--r-md); color: var(--text); font-size: 0.8rem;
+        }
+        .room-search input:focus { outline: none; border-color: var(--primary); }
+
+        .room-list { flex: 1; overflow-y: auto; }
+
+        .room-item {
+            padding: 0.9rem 1rem; cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            transition: background 0.15s;
+            display: flex; gap: 0.75rem; align-items: flex-start;
+        }
+        .room-item:hover  { background: rgba(107,51,179,0.1); }
+        .room-item.active { background: rgba(107,51,179,0.2); border-left: 3px solid var(--primary); }
+
+        .room-avatar {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; font-weight: 700; flex-shrink: 0;
+            color: white;
+        }
+
+        .room-info { flex: 1; min-width: 0; }
+        .room-name {
+            font-size: 0.85rem; font-weight: 600; color: var(--text);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .room-preview {
+            font-size: 0.75rem; color: var(--text3); margin-top: 0.15rem;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .room-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; flex-shrink: 0; }
+        .room-time { font-size: 0.65rem; color: var(--text3); }
+        .room-badge {
+            background: var(--primary); color: white;
+            border-radius: 10px; font-size: 0.65rem; font-weight: 700;
+            padding: 0 0.4rem; min-width: 18px; text-align: center;
+        }
+
+        /* Message panel */
+        .msg-panel {
+            display: flex; flex-direction: column;
+            background: rgba(10,15,25,0.7);
+        }
+
+        .msg-header {
+            padding: 0.75rem 1.25rem;
+            border-bottom: 1px solid var(--glass-border);
+            background: var(--glass);
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        .msg-header-name { font-weight: 700; font-size: 0.95rem; }
+        .msg-header-id   { font-size: 0.75rem; color: var(--text3); }
+
+        .msg-list {
+            flex: 1; overflow-y: auto;
+            padding: 1.25rem;
+            display: flex; flex-direction: column; gap: 0.5rem;
+        }
+
+        .msg-bubble-wrap {
+            display: flex; gap: 0.5rem; align-items: flex-end;
+        }
+        .msg-bubble-wrap.mine { flex-direction: row-reverse; }
+
+        .bubble-avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #1a4a55);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem; font-weight: 700; flex-shrink: 0; color: white;
+        }
+        .mine .bubble-avatar { background: linear-gradient(135deg, var(--primary), var(--primary-light)); }
+
+        .bubble-body { max-width: 70%; }
+        .bubble-sender { font-size: 0.65rem; color: var(--text3); margin-bottom: 0.2rem; padding-left: 0.2rem; }
+        .mine .bubble-sender { text-align: right; padding-right: 0.2rem; }
+
+        .bubble {
+            padding: 0.55rem 0.85rem;
+            border-radius: 1rem 1rem 1rem 0.25rem;
+            background: rgba(30,45,65,0.9);
+            font-size: 0.82rem; color: var(--text2);
+            border: 1px solid var(--glass-border);
+            word-break: break-word;
+        }
+        .mine .bubble {
+            background: rgba(107,51,179,0.35);
+            border-color: rgba(107,51,179,0.5);
+            border-radius: 1rem 1rem 0.25rem 1rem;
+        }
+
+        .bubble-time { font-size: 0.6rem; color: var(--text3); margin-top: 0.15rem; padding-left: 0.2rem; }
+        .mine .bubble-time { text-align: right; padding-right: 0.2rem; }
+
+        .msg-empty {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            color: var(--text3); font-size: 0.9rem; text-align: center;
+        }
+
+        /* ── Scrollable page sections ── */
+        .page { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
 
         .card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius-xl);
-            box-shadow: var(--shadow-card);
-            margin-bottom: 2rem;
-            overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+            background: var(--glass); backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: var(--r-xl);
+            box-shadow: var(--shadow); margin-bottom: 1.5rem; overflow: hidden;
         }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(107, 51, 179, 0.5), transparent);
-        }
-
-        .card:hover {
-            transform: translateY(-8px);
-            box-shadow: var(--shadow-elevated);
-        }
-
         .card-header {
-            background: linear-gradient(135deg, rgba(107, 51, 179, 0.9), rgba(128, 77, 217, 0.8));
-            color: white;
-            padding: 1rem;
-            position: relative;
-            overflow: hidden;
+            background: linear-gradient(135deg, rgba(107,51,179,.9), rgba(128,77,217,.8));
+            padding: 0.85rem 1.25rem;
         }
+        .card-header h2 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem; }
+        .card-body { padding: 1.5rem; }
 
-        .card-header h2 {
-            font-size: 1.375rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            position: relative;
-            z-index: 1;
+        /* forms */
+        label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 0.5rem; }
+        input[type=text], input[type=number], textarea, select {
+            width: 100%; padding: 0.7rem 0.9rem; border: 2px solid var(--glass-border);
+            border-radius: var(--r-md); font-size: 0.85rem; background: rgba(17,24,39,.85);
+            color: var(--text); font-family: inherit; transition: border-color .2s;
         }
-
-        .card-body {
-            padding: 2.5rem;
-        }
-
-        .config-grid {
-            display: grid;
-            gap: 2rem;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-        }
-
-        .config-item {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            padding: 1rem;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--glass-border);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .config-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--primary-color), var(--primary-light), var(--accent-color));
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
-        }
-
-        .config-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .config-item:hover::before {
-            transform: scaleX(1);
-        }
-
-        .config-item h3 {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .config-item h3 i {
-            color: var(--primary-light);
-            font-size: 1.25rem;
-            transition: transform 0.3s ease;
-        }
-
-        .config-item:hover h3 i {
-            transform: scale(1.1) rotate(5deg);
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group:last-child {
-            margin-bottom: 0;
-        }
-
-        label {
-            display: block;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 0.75rem;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        input[type='text'],
-        input[type='number'],
-        textarea,
-        select {
-            width: 100%;
-            padding: 1rem 1.25rem;
-            border: 2px solid var(--glass-border);
-            border-radius: var(--radius-md);
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-            background: rgba(17, 24, 39, 0.8);
-            backdrop-filter: blur(10px);
-            color: var(--text-primary);
-            font-family: inherit;
-        }
-
-        input[type='text']:focus,
-        input[type='number']:focus,
-        textarea:focus,
-        select:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 4px rgba(107, 51, 179, 0.1), 0 0 20px rgba(107, 51, 179, 0.2);
-            transform: translateY(-2px);
-        }
-
-        input[readonly] {
-            background: rgba(31, 41, 55, 0.6);
-            color: var(--text-muted);
-            cursor: not-allowed;
-        }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); }
+        input[readonly] { background: rgba(31,41,55,.6); color: var(--text3); cursor: not-allowed; }
 
         .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: var(--radius-md);
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            text-decoration: none;
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
-            position: relative;
-            overflow: hidden;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-family: inherit;
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.65rem 1.25rem; border: none; border-radius: var(--r-md);
+            font-size: 0.8rem; font-weight: 600; cursor: pointer;
+            transition: transform .2s, box-shadow .2s; text-transform: uppercase;
+            letter-spacing: .4px; font-family: inherit;
         }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; box-shadow: 0 4px 12px rgba(107,51,179,.3); }
+        .btn-secondary { background: var(--glass); color: var(--text); border: 1px solid var(--glass-border); }
+        .btn-danger { background: linear-gradient(135deg, var(--error), #992222); color: white; }
+        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
 
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn:hover::before {
-            left: 100%;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            box-shadow: 0 4px 15px rgba(107, 51, 179, 0.3);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(107, 51, 179, 0.4);
-        }
-
-        .btn-secondary {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            color: var(--text-primary);
-            border: 1px solid var(--glass-border);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(31, 41, 55, 0.8);
-            transform: translateY(-2px);
-            border-color: var(--primary-color);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, var(--error-color), #992222);
-            box-shadow: 0 4px 15px rgba(179, 51, 51, 0.3);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(179, 51, 51, 0.4);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, var(--success-color), #1a5c3a);
-            box-shadow: 0 4px 15px rgba(38, 107, 77, 0.3);
-            color: white;
-        }
-
-        .btn-success:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(38, 107, 77, 0.4);
-        }
-
-        .status-section {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            border-radius: var(--radius-xl);
-            padding: 2.5rem;
-            box-shadow: var(--shadow-card);
-            border: 1px solid var(--glass-border);
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-
-        .status-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--success-color), var(--accent-color));
-        }
-
-        .status-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .status-section h2 {
-            font-size: 1.375rem;
-            font-weight: 700;
-        }
-
-        .status-section h3 {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: var(--primary-light);
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .status-indicator {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            animation: pulse-status 2s infinite;
-            box-shadow: 0 0 20px currentColor;
-        }
-
-        .status-good { background: var(--success-color); color: var(--success-color); }
-        .status-bad  { background: var(--error-color);   color: var(--error-color); }
-
-        @keyframes pulse-status {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.1); }
-        }
-
-        .status-text { font-size: 1.25rem; font-weight: 600; }
-        .status-text.good { color: var(--success-color); }
-        .status-text.bad  { color: var(--error-color); }
-
-        .log-filter-bar {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-
-        .log-filter-bar input, .log-filter-bar select {
-            flex: 1;
-            min-width: 160px;
-            padding: 0.6rem 1rem;
-            font-size: 0.85rem;
-        }
-
-        .log-filter-bar .btn {
-            padding: 0.6rem 1.2rem;
-            font-size: 0.8rem;
-            margin: 0;
-        }
-
-        .log-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            border-radius: var(--radius-lg);
-            overflow: hidden;
-            box-shadow: var(--shadow-card);
-            border: 1px solid var(--glass-border);
-        }
-
-        .log-table th {
-            background: rgba(107, 51, 179, 0.1);
-            padding: 1.25rem;
-            text-align: left;
-            font-weight: 700;
-            color: var(--text-primary);
-            border-bottom: 2px solid var(--glass-border);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 0.8rem;
-        }
-
-        .log-table td {
-            padding: 1.25rem;
-            border-bottom: 1px solid var(--glass-border);
-            color: var(--text-secondary);
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
-        .log-table tr:hover { background: rgba(107, 51, 179, 0.05); }
-        .log-table tr:last-child td { border-bottom: none; }
+        .form-group { margin-bottom: 1rem; }
+        .form-row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
+        .form-row .form-group { flex: 1; min-width: 160px; }
+        .config-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        .config-item { background: var(--glass); padding: 1rem; border-radius: var(--r-lg); border: 1px solid var(--glass-border); }
+        .config-item h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.6rem; color: var(--text); }
+        .config-item h3 i { color: var(--primary-light); }
+        .input-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        .input-group .btn { width: 100%; margin: 0; }
 
         .response-area {
-            background: rgba(15, 23, 42, 0.9);
-            backdrop-filter: blur(10px);
-            color: var(--text-secondary);
-            padding: 2rem;
-            border-radius: var(--radius-lg);
-            margin-top: 1rem;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-            font-size: 0.875rem;
-            white-space: pre-wrap;
-            overflow-x: auto;
-            border: 1px solid var(--glass-border);
-            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+            background: rgba(10,15,25,.95); color: var(--text2);
+            padding: 1.25rem; border-radius: var(--r-lg); margin-top: 0.75rem;
+            font-family: 'SF Mono', Monaco, monospace; font-size: 0.8rem;
+            white-space: pre-wrap; overflow-x: auto; border: 1px solid var(--glass-border);
+            display: none;
         }
 
-        .terminal-area {
-            background: #0a0a0a;
-            color: #33ff33;
-            padding: 1.5rem;
-            border-radius: var(--radius-lg);
-            margin-top: 1rem;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-            font-size: 0.85rem;
-            white-space: pre-wrap;
-            overflow-x: auto;
-            border: 1px solid #1a3a1a;
-            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
-            min-height: 120px;
-            max-height: 400px;
-            overflow-y: auto;
+        .terminal {
+            background: #070c07; color: #33ff33;
+            padding: 1rem 1.25rem; border-radius: var(--r-lg); margin-top: 0.75rem;
+            font-family: 'SF Mono', Monaco, monospace; font-size: 0.8rem;
+            white-space: pre-wrap; min-height: 100px; max-height: 360px;
+            overflow-y: auto; border: 1px solid #1a3a1a;
         }
 
-        .notice {
-            background: rgba(179, 97, 19, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(179, 97, 19, 0.3);
-            color: var(--warning-color);
-            padding: 0.75rem 1rem;
-            border-radius: var(--radius-md);
-            margin-top: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-weight: 500;
-            font-size: 0.8rem;
+        .token-box {
+            font-family: 'SF Mono', Monaco, monospace; font-size: 0.75rem;
+            background: rgba(10,15,25,.95); color: #a78bfa;
+            padding: 1rem; border-radius: var(--r-md); border: 1px solid var(--glass-border);
+            word-break: break-all; white-space: pre-wrap; max-height: 180px; overflow-y: auto;
         }
 
-        .input-buttons-group {
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 1rem;
-        }
+        .notice { background: rgba(179,97,19,.1); border: 1px solid rgba(179,97,19,.3); color: var(--warning); padding: 0.6rem 0.9rem; border-radius: var(--r-md); font-size: 0.78rem; display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
 
-        .input-buttons-group input { width: 100%; flex: none; }
-        .input-buttons-group .btn { width: 100%; margin-right: 0; margin-bottom: 0; flex-shrink: 0; }
+        /* stats */
+        .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: rgba(10,15,25,.7); border: 1px solid var(--glass-border); border-radius: var(--r-lg); padding: 1rem; text-align: center; }
+        .stat-val { font-size: 1.8rem; font-weight: 800; color: var(--primary-light); }
+        .stat-lbl { font-size: 0.7rem; color: var(--text3); text-transform: uppercase; margin-top: 0.2rem; }
 
-        .form-row {
-            display: flex;
-            gap: 1rem;
-            align-items: end;
-        }
+        .hour-wrap { margin-bottom: 1.5rem; }
+        .hour-chart { display: flex; align-items: flex-end; gap: 3px; height: 72px; }
+        .hour-bar { flex: 1; min-height: 2px; border-radius: 2px 2px 0 0; background: linear-gradient(to top, var(--primary), var(--primary-light)); cursor: pointer; transition: opacity .2s; position: relative; }
+        .hour-bar:hover { opacity: .75; }
+        .hour-bar::after { content: attr(data-h); position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%); font-size: 0.55rem; color: var(--text3); }
+        .hour-labels { height: 18px; }
+        .hour-axis { display: flex; justify-content: space-between; font-size: 0.6rem; color: var(--text3); margin-top: 20px; }
 
-        .form-row .form-group { flex: 1; }
-        .form-row .btn { margin-bottom: 0; }
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+        .data-table th { background: rgba(107,51,179,.12); padding: 0.7rem 1rem; text-align: left; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; border-bottom: 2px solid var(--glass-border); }
+        .data-table td { padding: 0.7rem 1rem; border-bottom: 1px solid var(--glass-border); font-size: 0.8rem; color: var(--text2); word-break: break-word; }
+        .data-table tr:hover td { background: rgba(107,51,179,.06); }
+        .data-table tr:last-child td { border-bottom: none; }
 
-        .section-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 2rem;
-        }
+        /* usage guide */
+        .guide { background: rgba(10,15,25,.7); border: 1px solid var(--glass-border); border-radius: var(--r-lg); padding: 1.25rem; margin-bottom: 1rem; }
+        .guide h4 { font-size: 0.9rem; font-weight: 700; color: var(--primary-light); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+        .guide ul { padding-left: 1.25rem; color: var(--text2); font-size: 0.82rem; }
+        .guide ul li { margin-bottom: 0.4rem; }
+        .guide code { background: rgba(107,51,179,.2); border-radius: 3px; padding: 0.1rem 0.35rem; font-family: monospace; font-size: 0.8rem; color: #c4b5fd; }
 
-        .token-display {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-            font-size: 0.8rem;
-            background: rgba(15, 23, 42, 0.9);
-            color: #a78bfa;
-            padding: 1.5rem;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--glass-border);
-            word-break: break-all;
-            white-space: pre-wrap;
-            max-height: 200px;
-            overflow-y: auto;
-        }
+        /* scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg2); }
+        ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 3px; }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            text-align: center;
-        }
-
-        .stat-card .stat-value {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--primary-light);
-        }
-
-        .stat-card .stat-label {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 0.25rem;
-        }
-
-        .hour-chart {
-            display: flex;
-            align-items: flex-end;
-            gap: 3px;
-            height: 80px;
-            padding: 0.5rem 0;
-        }
-
-        .hour-bar {
-            flex: 1;
-            background: linear-gradient(to top, var(--primary-color), var(--primary-light));
-            border-radius: 2px 2px 0 0;
-            min-height: 2px;
-            transition: opacity 0.2s;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .hour-bar:hover { opacity: 0.8; }
-
-        .hour-bar::after {
-            content: attr(data-label);
-            position: absolute;
-            bottom: -18px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            white-space: nowrap;
-        }
-
-        .hour-chart-wrap { margin-bottom: 1.5rem; }
-        .hour-chart-labels { height: 20px; }
-
-        #lastLogs {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 0.5rem;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: currentColor;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, var(--primary-color), var(--primary-light)); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: linear-gradient(135deg, var(--primary-dark), var(--primary-color)); }
-
-        .btn:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
-        input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
-
-        @media (max-width: 768px) {
-            .container { padding: 1rem; }
-            .header { margin-bottom: 0; }
-            .card-body { padding: 1.5rem; }
-            .config-grid { grid-template-columns: 1fr; }
-            .form-row { flex-direction: column; gap: 0; }
-            .section-grid { grid-template-columns: 1fr; }
-            .log-filter-bar { flex-direction: column; }
+        @media(max-width:768px) {
+            .chat-layout { grid-template-columns: 1fr; }
+            .room-sidebar { display: none; }
+            .room-sidebar.show { display: flex; position: fixed; top: 55px; left: 0; right: 0; bottom: 0; z-index: 50; }
         }
     </style>
 </head>
-
 <body>
-<div class="container">
-    <div class="header">
-        <h1>Iris Dashboard</h1>
+<div class="app">
+
+    <!-- Top bar -->
+    <div class="topbar">
+        <h1><i class="fas fa-eye" style="color:var(--primary-light);margin-right:.4rem;font-size:1rem;"></i>Iris</h1>
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('chat')"><i class="fas fa-comments"></i> 채팅</button>
+            <button class="nav-tab" onclick="switchTab('tools')"><i class="fas fa-tools"></i> 도구</button>
+            <button class="nav-tab" onclick="switchTab('stats')"><i class="fas fa-chart-bar"></i> 통계</button>
+            <button class="nav-tab" onclick="switchTab('config')"><i class="fas fa-cog"></i> 설정</button>
+            <button class="nav-tab" onclick="switchTab('help')"><i class="fas fa-question-circle"></i> 사용법</button>
+        </div>
+        <div class="topbar-status">
+            <div class="dot bad" id="statusDot"></div>
+            <span id="statusText">확인 중...</span>
+        </div>
     </div>
 
-    <!-- Configuration Settings -->
-    <div class="card">
-        <div class="card-header">
-            <h2><i class="fas fa-cog"></i> Configuration Settings</h2>
+    <!-- ═══════════════ CHAT TAB ═══════════════ -->
+    <div class="content active" id="tab-chat">
+        <div class="chat-layout">
+
+            <!-- Room sidebar -->
+            <div class="room-sidebar">
+                <div class="room-search">
+                    <input type="text" id="roomSearch" placeholder="🔍 방 검색..." oninput="filterRooms(this.value)">
+                </div>
+                <div class="room-list" id="roomList">
+                    <div style="padding:2rem;text-align:center;color:var(--text3);font-size:.8rem;">
+                        로그를 불러오는 중...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message panel -->
+            <div class="msg-panel" id="msgPanel">
+                <div class="msg-empty" id="msgEmpty">
+                    <div>
+                        <div style="font-size:2rem;margin-bottom:.5rem;opacity:.3;">💬</div>
+                        <div>좌측에서 채팅방을 선택하세요</div>
+                    </div>
+                </div>
+                <div id="msgHeader" class="msg-header" style="display:none;">
+                    <div class="room-avatar" id="msgRoomAvatar">?</div>
+                    <div>
+                        <div class="msg-header-name" id="msgRoomName"></div>
+                        <div class="msg-header-id" id="msgRoomId"></div>
+                    </div>
+                    <div style="margin-left:auto;display:flex;gap:.5rem;">
+                        <button class="btn btn-sm btn-secondary" onclick="copyRoomId()">
+                            <i class="fas fa-copy"></i> ID 복사
+                        </button>
+                    </div>
+                </div>
+                <div class="msg-list" id="msgList" style="display:none;"></div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="config-grid">
-                <div class="config-item">
-                    <h3><i class="fas fa-tag"></i> Bot Name</h3>
+    </div>
+
+    <!-- ═══════════════ TOOLS TAB ═══════════════ -->
+    <div class="content" id="tab-tools">
+        <div class="page">
+
+            <!-- AOT Token -->
+            <div class="card">
+                <div class="card-header"><h2><i class="fas fa-key"></i> Admin Token (AOT)</h2></div>
+                <div class="card-body">
+                    <p style="color:var(--text3);font-size:.82rem;margin-bottom:1rem;">KakaoTalk 인증 토큰. 외부에 공개하지 마세요.</p>
+                    <div id="tokenBox" class="token-box">[ Load Token 버튼을 클릭하세요 ]</div>
+                    <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+                        <button class="btn btn-primary btn-sm" onclick="loadToken()"><i class="fas fa-download"></i> Load Token</button>
+                        <button class="btn btn-secondary btn-sm" onclick="copyToken()"><i class="fas fa-copy"></i> Copy JSON</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shell -->
+            <div class="card">
+                <div class="card-header"><h2><i class="fas fa-terminal"></i> Shell 명령어 실행</h2></div>
+                <div class="card-body">
                     <div class="form-group">
-                        <label for="botName">Current Bot Name</label>
-                        <input type="text" id="botName" value="CURRENT_BOT_NAME" readonly>
+                        <label>명령어 (Enter로 실행)</label>
+                        <input type="text" id="execInput" placeholder="ls /sdcard/iris_tmp"
+                               onkeydown="if(event.key==='Enter')runExec()">
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="runExec()"><i class="fas fa-play"></i> 실행</button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearTerm()"><i class="fas fa-trash"></i> 지우기</button>
+                    <div id="termOut" class="terminal">$ 준비</div>
+                </div>
+            </div>
+
+            <!-- Reply test -->
+            <div class="card">
+                <div class="card-header"><h2><i class="fas fa-reply"></i> 메시지 전송 테스트</h2></div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Room ID</label>
+                            <input type="text" id="replyRoom">
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <select id="replyType" onchange="updateReplyPlaceholder()">
+                                <option value="text">text</option>
+                                <option value="image">image (base64)</option>
+                                <option value="image_multiple">image_multiple</option>
+                                <option value="file">file (경로)</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label for="newBotName">New Bot Name</label>
-                        <div class="input-buttons-group">
-                            <input type="text" id="newBotName" placeholder="Enter new bot name">
-                            <button class="btn btn-primary"
-                                    onclick="updateConfig('botname', document.getElementById('newBotName').value)">
-                                Update
-                            </button>
+                        <label>Data</label>
+                        <textarea id="replyData" rows="3" placeholder="메시지 내용"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Raw JSON (위 내용 무시하고 직접 전송)</label>
+                        <textarea id="replyRaw" rows="3" placeholder='{"room":"","type":"text","data":""}'></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="sendReply()"><i class="fas fa-paper-plane"></i> 전송</button>
+                    <div id="replyRes" class="response-area"></div>
+                </div>
+            </div>
+
+            <!-- Query test -->
+            <div class="card">
+                <div class="card-header"><h2><i class="fas fa-search"></i> DB Query 테스트</h2></div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>SQL</label>
+                        <textarea id="querySql" rows="4" placeholder="SELECT * FROM chat_logs LIMIT 20"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Bind params (JSON Array)</label>
+                        <input type="text" id="queryBind" placeholder='["value1"]'>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="runQuery()"><i class="fas fa-play"></i> 실행</button>
+                    <div id="queryRes" class="response-area"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ STATS TAB ═══════════════ -->
+    <div class="content" id="tab-stats">
+        <div class="page">
+            <div class="card">
+                <div class="card-header"><h2><i class="fas fa-chart-bar"></i> 통계</h2></div>
+                <div class="card-body">
+                    <div class="form-row" style="margin-bottom:1rem;">
+                        <div class="form-group">
+                            <label>Room ID (선택)</label>
+                            <input type="text" id="statsRoom" placeholder="비우면 전체 방">
+                        </div>
+                        <div class="form-group">
+                            <label>User ID (선택)</label>
+                            <input type="text" id="statsUser" placeholder="비우면 전체 유저">
+                        </div>
+                        <button class="btn btn-primary" style="margin-bottom:1rem;" onclick="loadStats()">
+                            <i class="fas fa-sync"></i> 조회
+                        </button>
+                    </div>
+                    <div id="statsOut">
+                        <p style="color:var(--text3);text-align:center;padding:2rem;">조회 버튼을 클릭하세요.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ CONFIG TAB ═══════════════ -->
+    <div class="content" id="tab-config">
+        <div class="page">
+            <div class="card">
+                <div class="card-header"><h2><i class="fas fa-cog"></i> 설정</h2></div>
+                <div class="card-body">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <h3><i class="fas fa-tag"></i> 봇 이름</h3>
+                            <div class="form-group"><label>현재</label><input type="text" id="cfgBotName" value="CURRENT_BOT_NAME" readonly></div>
+                            <div class="form-group"><label>변경</label>
+                                <div class="input-group">
+                                    <input type="text" id="cfgNewBotName" placeholder="새 이름">
+                                    <button class="btn btn-primary" onclick="updateConfig('botname',document.getElementById('cfgNewBotName').value)">변경</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <h3><i class="fas fa-server"></i> Web 엔드포인트</h3>
+                            <div class="form-group"><label>현재</label><input type="text" id="cfgEndpoint" value="CURRENT_WEB_ENDPOINT" readonly></div>
+                            <div class="form-group"><label>변경</label>
+                                <div class="input-group">
+                                    <input type="text" id="cfgNewEndpoint" placeholder="http://172.17.0.1:5000/db">
+                                    <button class="btn btn-primary" onclick="updateConfig('endpoint',document.getElementById('cfgNewEndpoint').value)">변경</button>
+                                    <button class="btn btn-danger" onclick="updateConfig('endpoint','')">지우기</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <h3><i class="fas fa-database"></i> DB 폴링 주기</h3>
+                            <div class="form-group"><label>현재 (ms)</label><input type="number" id="cfgDbRate" value="CURRENT_DB_RATE" readonly></div>
+                            <div class="form-group"><label>변경 (ms)</label>
+                                <div class="input-group">
+                                    <input type="number" id="cfgNewDbRate" placeholder="5000">
+                                    <button class="btn btn-primary" onclick="updateConfig('dbrate',document.getElementById('cfgNewDbRate').value)">변경</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <h3><i class="fas fa-paper-plane"></i> 메시지 전송 주기</h3>
+                            <div class="form-group"><label>현재 (ms)</label><input type="number" id="cfgSendRate" value="CURRENT_SEND_RATE" readonly></div>
+                            <div class="form-group"><label>변경 (ms)</label>
+                                <div class="input-group">
+                                    <input type="number" id="cfgNewSendRate" placeholder="1000">
+                                    <button class="btn btn-primary" onclick="updateConfig('sendrate',document.getElementById('cfgNewSendRate').value)">변경</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <h3><i class="fas fa-network-wired"></i> Bot 포트</h3>
+                            <div class="form-group"><label>현재</label><input type="number" id="cfgPort" value="CURRENT_BOT_PORT" readonly></div>
+                            <div class="form-group"><label>변경</label>
+                                <div class="input-group">
+                                    <input type="number" id="cfgNewPort" placeholder="3000">
+                                    <button class="btn btn-primary" onclick="updateConfig('botport',document.getElementById('cfgNewPort').value)">변경</button>
+                                </div>
+                            </div>
+                            <div class="notice"><i class="fas fa-exclamation-triangle"></i> 포트 변경 후 서버 재시작 필요</div>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="config-item">
-                    <h3><i class="fas fa-server"></i> Web Server Endpoint</h3>
-                    <div class="form-group">
-                        <label for="webServerEndpoint">Current Endpoint</label>
-                        <input type="text" id="webServerEndpoint" value="CURRENT_WEB_ENDPOINT" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="newWebServerEndpoint">New Endpoint</label>
-                        <div class="input-buttons-group">
-                            <input type="text" id="newWebServerEndpoint" placeholder="http://172.17.0.1:5000/db">
-                            <button class="btn btn-primary"
-                                    onclick="updateConfig('endpoint', document.getElementById('newWebServerEndpoint').value)">
-                                Update
-                            </button>
-                            <button class="btn btn-danger" onclick="clearEndpoint()">Clear</button>
-                        </div>
-                    </div>
-                </div>
+    <!-- ═══════════════ HELP TAB ═══════════════ -->
+    <div class="content" id="tab-help">
+        <div class="page">
+            <div class="card">
+                <div class="card-header"><h2><i class="fas fa-question-circle"></i> 사용법</h2></div>
+                <div class="card-body">
 
-                <div class="config-item">
-                    <h3><i class="fas fa-database"></i> DB Polling Rate</h3>
-                    <div class="form-group">
-                        <label for="dbPollingRate">Current Rate (ms)</label>
-                        <input type="number" id="dbPollingRate" value="CURRENT_DB_RATE" readonly>
+                    <div class="guide">
+                        <h4><i class="fas fa-comments"></i> 채팅 탭</h4>
+                        <ul>
+                            <li>Iris가 수신한 최근 메시지를 채팅방별로 정리해서 보여줍니다.</li>
+                            <li>좌측 목록에서 채팅방을 클릭하면 해당 방의 메시지가 오른쪽에 표시됩니다.</li>
+                            <li><b>파란 버블</b>: 봇이 보낸 메시지 / <b>회색 버블</b>: 다른 사람 메시지</li>
+                            <li><b>ID 복사</b> 버튼으로 room ID를 클립보드에 복사할 수 있습니다.</li>
+                            <li>방 이름은 앱이 새 메시지를 수신해야 표시됩니다. 첫 실행 시 <code>chat_id</code>만 보일 수 있습니다.</li>
+                        </ul>
                     </div>
-                    <div class="form-group">
-                        <label for="newDbPollingRate">New Rate (ms)</label>
-                        <div class="input-buttons-group">
-                            <input type="number" id="newDbPollingRate" placeholder="5000">
-                            <button class="btn btn-primary"
-                                    onclick="updateConfig('dbrate', document.getElementById('newDbPollingRate').value)">
-                                Update
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="config-item">
-                    <h3><i class="fas fa-paper-plane"></i> Message Send Rate</h3>
-                    <div class="form-group">
-                        <label for="messageSendRate">Current Rate (ms)</label>
-                        <input type="number" id="messageSendRate" value="CURRENT_SEND_RATE" readonly>
+                    <div class="guide">
+                        <h4><i class="fas fa-terminal"></i> Shell 명령어</h4>
+                        <ul>
+                            <li><code>POST /exec</code> 엔드포인트를 통해 기기에서 쉘 명령어를 실행합니다.</li>
+                            <li>파일 확인: <code>ls /sdcard/iris_tmp</code></li>
+                            <li>MediaStore 쿼리: <code>content query --uri content://media/external/audio/media --where "_data='/sdcard/iris_tmp/test.mp3'" --projection _id</code></li>
+                            <li>프로세스 확인: <code>ps | grep kakao</code></li>
+                            <li>30초 타임아웃. 백그라운드 실행은 지원하지 않습니다.</li>
+                        </ul>
                     </div>
-                    <div class="form-group">
-                        <label for="newMessageSendRate">New Rate (ms)</label>
-                        <div class="input-buttons-group">
-                            <input type="number" id="newMessageSendRate" placeholder="1000">
-                            <button class="btn btn-primary"
-                                    onclick="updateConfig('sendrate', document.getElementById('newMessageSendRate').value)">
-                                Update
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="config-item">
-                    <h3><i class="fas fa-network-wired"></i> Bot Port</h3>
-                    <div class="form-group">
-                        <label for="botPort">Current Port</label>
-                        <input type="number" id="botPort" value="CURRENT_BOT_PORT" readonly>
+                    <div class="guide">
+                        <h4><i class="fas fa-reply"></i> 메시지 전송 테스트</h4>
+                        <ul>
+                            <li><b>text</b>: 일반 문자 메시지. <code>data</code>에 내용 입력</li>
+                            <li><b>image</b>: Base64 인코딩된 이미지 1장</li>
+                            <li><b>image_multiple</b>: Base64 배열 <code>["data1","data2"]</code></li>
+                            <li><b>file</b>: 기기 내 파일 경로. 예: <code>/sdcard/iris_tmp/audio.mp3</code></li>
+                            <li>음성메시지 테스트: type=<code>file</code>, data=<code>.mp3 절대경로</code></li>
+                        </ul>
                     </div>
-                    <div class="form-group">
-                        <label for="newBotPort">New Port</label>
-                        <div class="input-buttons-group">
-                            <input type="number" id="newBotPort" placeholder="3000">
-                            <button class="btn btn-primary"
-                                    onclick="updateConfig('botport', document.getElementById('newBotPort').value)">
-                                Update
-                            </button>
-                        </div>
+
+                    <div class="guide">
+                        <h4><i class="fas fa-chart-bar"></i> 통계</h4>
+                        <ul>
+                            <li><b>파라미터 없음</b>: 방별 메시지 수 + 봇 시간대별 활동</li>
+                            <li><b>Room ID만</b>: 해당 방의 유저별 메시지 수</li>
+                            <li><b>User ID만</b>: 해당 유저의 시간대별 활동</li>
+                            <li><b>둘 다</b>: 해당 유저의 해당 방에서 시간대별 활동</li>
+                            <li>Room ID는 채팅 탭에서 ID 복사 버튼으로 가져오세요.</li>
+                        </ul>
                     </div>
-                    <div class="notice">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Server restart required for bot port changes to take effect.
+
+                    <div class="guide">
+                        <h4><i class="fas fa-key"></i> AOT Token</h4>
+                        <ul>
+                            <li>KakaoTalk 인증에 사용되는 토큰입니다.</li>
+                            <li><b>도구 탭</b> → <b>Load Token</b> 버튼으로 불러옵니다.</li>
+                            <li>복사 후 외부 API 호출 시 사용할 수 있습니다.</li>
+                        </ul>
+                    </div>
+
+                    <div class="guide">
+                        <h4><i class="fas fa-database"></i> API 엔드포인트 요약</h4>
+                        <ul>
+                            <li><code>POST /reply</code> — 메시지 전송</li>
+                            <li><code>POST /exec</code> — 쉘 명령어 실행</li>
+                            <li><code>GET  /stats?roomId=&amp;userId=</code> — 통계 조회</li>
+                            <li><code>POST /query</code> — SQLite 직접 쿼리</li>
+                            <li><code>GET  /aot</code> — 인증 토큰 조회</li>
+                            <li><code>GET  /config</code> — 설정 조회</li>
+                            <li><code>WS   /ws</code> — 실시간 메시지 수신</li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Admin Token -->
-    <div class="card">
-        <div class="card-header">
-            <h2><i class="fas fa-key"></i> Admin Token (AOT)</h2>
-        </div>
-        <div class="card-body">
-            <div class="config-item" style="max-width:100%">
-                <h3><i class="fas fa-shield-alt"></i> KakaoTalk Auth Token</h3>
-                <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem;">
-                    Used for KakaoTalk API authentication. Keep this private.
-                </p>
-                <div id="tokenDisplay" class="token-display">Click "Load Token" to fetch the current AOT.</div>
-                <div style="margin-top:1rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
-                    <button class="btn btn-primary" onclick="loadToken()">
-                        <i class="fas fa-download"></i> Load Token
-                    </button>
-                    <button class="btn btn-secondary" onclick="copyToken()">
-                        <i class="fas fa-copy"></i> Copy JSON
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Reply + Query side by side -->
-    <div class="section-grid">
-        <div class="card">
-            <div class="card-header">
-                <h2><i class="fas fa-reply"></i> Reply Endpoint Test</h2>
-            </div>
-            <div class="card-body">
-                <form id="replyForm">
-                    <div class="form-group">
-                        <label for="replyRoom">Room ID</label>
-                        <input type="text" id="replyRoom" name="room" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="replyType">Message Type</label>
-                        <select id="replyType" name="type" onchange="updateReplyDataPlaceholder()">
-                            <option value="text">Text</option>
-                            <option value="image">Image (Base64)</option>
-                            <option value="image_multiple">Multiple Images (Base64 JSON Array)</option>
-                            <option value="file">File (path)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="replyData">Message Data</label>
-                        <textarea id="replyData" name="data" rows="4" required
-                                  placeholder="Enter message text"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="replyRawJson">Raw JSON Body (override above)</label>
-                        <textarea id="replyRawJson" name="rawJson" rows="4"
-                                  placeholder='{"room": "", "type": "text", "data": ""}'></textarea>
-                    </div>
-                    <button type="button" class="btn btn-primary"
-                            onclick="submitForm('/reply', 'replyForm', 'replyResponseArea')">
-                        <i class="fas fa-paper-plane"></i> Send Reply
-                    </button>
-                </form>
-                <div id="replyResponseArea" class="response-area" style="display: none;"></div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h2><i class="fas fa-search"></i> Query Endpoint Test</h2>
-            </div>
-            <div class="card-body">
-                <form id="queryForm">
-                    <div class="form-group">
-                        <label for="querySql">SQL Query</label>
-                        <textarea id="querySql" name="query" rows="4" required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="queryBind">Bind Parameters (JSON Array, optional)</label>
-                        <input type="text" id="queryBind" name="bind" placeholder='["value1", "value2"]'>
-                    </div>
-                    <div class="form-group">
-                        <label for="queryRawJson">Raw JSON Body (override above)</label>
-                        <textarea id="queryRawJson" name="rawJson" rows="4"
-                                  placeholder='{"query": "SELECT * FROM chat_logs LIMIT 10"}'></textarea>
-                    </div>
-                    <button type="button" class="btn btn-primary"
-                            onclick="submitForm('/query', 'queryForm', 'queryResponseArea')">
-                        <i class="fas fa-play"></i> Execute Query
-                    </button>
-                </form>
-                <div id="queryResponseArea" class="response-area" style="display: none;"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Shell Command Execution -->
-    <div class="card">
-        <div class="card-header">
-            <h2><i class="fas fa-terminal"></i> Shell Command Execution</h2>
-        </div>
-        <div class="card-body">
-            <div class="form-group">
-                <label for="execCommand">Command</label>
-                <input type="text" id="execCommand" placeholder="e.g. ls /sdcard/iris_tmp"
-                       onkeydown="if(event.key==='Enter') execCommand()">
-            </div>
-            <button class="btn btn-primary" onclick="execCommand()">
-                <i class="fas fa-play"></i> Run
-            </button>
-            <button class="btn btn-secondary" onclick="clearTerminal()">
-                <i class="fas fa-trash"></i> Clear
-            </button>
-            <div id="terminalOutput" class="terminal-area">$ ready</div>
-        </div>
-    </div>
-
-    <!-- Statistics -->
-    <div class="card">
-        <div class="card-header">
-            <h2><i class="fas fa-chart-bar"></i> Statistics</h2>
-        </div>
-        <div class="card-body">
-            <div class="form-row" style="margin-bottom:1.5rem;flex-wrap:wrap;">
-                <div class="form-group">
-                    <label for="statsRoomId">Room ID (optional)</label>
-                    <input type="text" id="statsRoomId" placeholder="Leave blank for all rooms">
-                </div>
-                <div class="form-group">
-                    <label for="statsUserId">User ID (optional)</label>
-                    <input type="text" id="statsUserId" placeholder="Leave blank for all users">
-                </div>
-                <button class="btn btn-primary" style="margin-bottom:1.5rem;" onclick="loadStats()">
-                    <i class="fas fa-sync"></i> Load Stats
-                </button>
-            </div>
-
-            <div id="statsContent">
-                <p style="color:var(--text-muted);text-align:center;padding:2rem;">
-                    Click "Load Stats" to view statistics.
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- DB Status + Chat Logs -->
-    <div class="status-section">
-        <div class="status-header">
-            <h2><i class="fas fa-heartbeat"></i> DB Status</h2>
-        </div>
-        <div class="status-header">
-            <div class="status-indicator" id="statusIndicator"></div>
-            <p class="status-text" id="dbStatus">Checking status...</p>
-        </div>
-
-        <h3><i class="fas fa-history"></i> Recent Chat Logs</h3>
-        <div class="log-filter-bar">
-            <input type="text" id="filterRoomId" placeholder="Filter by Room ID" style="max-width:220px;">
-            <input type="text" id="filterUserId" placeholder="Filter by User ID" style="max-width:220px;">
-            <button class="btn btn-secondary" onclick="applyLogFilter()">
-                <i class="fas fa-filter"></i> Filter
-            </button>
-            <button class="btn btn-secondary" onclick="clearLogFilter()">
-                <i class="fas fa-times"></i> Clear
-            </button>
-        </div>
-        <div id="lastLogs"></div>
-    </div>
-</div>
+</div><!-- .app -->
 
 <script>
-    let allLogs = [];
-    let tokenData = null;
+// ── state ──
+let allLogs = [];
+let rooms   = {};   // chat_id → { name, logs[] }
+let activeRoom = null;
+let tokenData = null;
 
-    document.addEventListener('DOMContentLoaded', function () {
-        fetchDbStatus();
-        setInterval(fetchDbStatus, 5000);
-        updateReplyDataPlaceholder();
-    });
+// ── tab switching ──
+function switchTab(name) {
+    document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.currentTarget.classList.add('active');
+}
 
-    const formatUnixTimestamp = (timestamp) => {
-        const date = new Date(timestamp * 1000);
-        const year = String(date.getFullYear());
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${year}:${month}:${day} ${hours}:${minutes}:${seconds}`;
-    };
+// ── polling ──
+document.addEventListener('DOMContentLoaded', () => {
+    fetchStatus();
+    setInterval(fetchStatus, 5000);
+    updateReplyPlaceholder();
+});
 
-    function fetchDbStatus() {
-        fetch('/dashboard/status')
-            .then(r => r.json())
-            .then(data => {
-                const dbStatusEl = document.getElementById('dbStatus');
-                const indicator = document.getElementById('statusIndicator');
-
-                if (data.isObserving) {
-                    dbStatusEl.textContent = data.statusMessage;
-                    dbStatusEl.className = 'status-text good';
-                    indicator.className = 'status-indicator status-good';
-                } else {
-                    dbStatusEl.textContent = data.statusMessage;
-                    dbStatusEl.className = 'status-text bad';
-                    indicator.className = 'status-indicator status-bad';
-                }
-
-                if (data.lastLogs) {
-                    allLogs = data.lastLogs;
-                    renderLogs(allLogs);
-                }
-            })
-            .catch(() => {
-                document.getElementById('dbStatus').textContent = 'Error checking DB status';
-                document.getElementById('dbStatus').className = 'status-text bad';
-                document.getElementById('statusIndicator').className = 'status-indicator status-bad';
-            });
-    }
-
-    function renderLogs(logs) {
-        const container = document.getElementById('lastLogs');
-        container.innerHTML = '';
-        if (!logs || logs.length === 0) {
-            container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">No recent logs available.</p>';
-            return;
-        }
-        const table = document.createElement('table');
-        table.className = 'log-table';
-        const hRow = table.insertRow();
-        ['ID', 'Chat ID', 'User ID', 'Message', 'Created At'].forEach(h => {
-            const th = document.createElement('th');
-            th.textContent = h;
-            hRow.appendChild(th);
-        });
-        logs.forEach(log => {
-            const row = table.insertRow();
-            ['_id', 'chat_id', 'user_id', 'message', 'created_at'].forEach(key => {
-                const cell = row.insertCell();
-                cell.textContent = key === 'created_at' ? formatUnixTimestamp(log[key] || 0) : (log[key] || '');
-            });
-        });
-        container.appendChild(table);
-    }
-
-    function applyLogFilter() {
-        const roomId = document.getElementById('filterRoomId').value.trim();
-        const userId = document.getElementById('filterUserId').value.trim();
-        let filtered = allLogs;
-        if (roomId) filtered = filtered.filter(l => String(l.chat_id) === roomId);
-        if (userId) filtered = filtered.filter(l => String(l.user_id) === userId);
-        renderLogs(filtered);
-    }
-
-    function clearLogFilter() {
-        document.getElementById('filterRoomId').value = '';
-        document.getElementById('filterUserId').value = '';
-        renderLogs(allLogs);
-    }
-
-    // ---- Token ----
-    function loadToken() {
-        const display = document.getElementById('tokenDisplay');
-        display.textContent = 'Loading...';
-        fetch('/aot')
-            .then(r => r.json())
-            .then(data => {
-                tokenData = data.aot;
-                display.textContent = JSON.stringify(data.aot, null, 2);
-            })
-            .catch(e => { display.textContent = 'Error: ' + e.message; });
-    }
-
-    function copyToken() {
-        if (!tokenData) { alert('Load the token first.'); return; }
-        navigator.clipboard.writeText(JSON.stringify(tokenData, null, 2))
-            .then(() => alert('Token copied to clipboard.'))
-            .catch(() => alert('Copy failed.'));
-    }
-
-    // ---- Shell exec ----
-    let terminalHistory = ['$ ready'];
-
-    function execCommand() {
-        const cmd = document.getElementById('execCommand').value.trim();
-        if (!cmd) return;
-        const output = document.getElementById('terminalOutput');
-        output.textContent += '\n$ ' + cmd + '\n';
-        output.scrollTop = output.scrollHeight;
-        document.getElementById('execCommand').value = '';
-
-        fetch('/exec', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: cmd })
-        })
+function fetchStatus() {
+    fetch('/dashboard/status')
         .then(r => r.json())
         .then(data => {
-            output.textContent += (data.stdout || '(no output)') + '\n[exit: ' + data.exitCode + ']\n';
-            output.scrollTop = output.scrollHeight;
-        })
-        .catch(e => {
-            output.textContent += 'Error: ' + e.message + '\n';
-            output.scrollTop = output.scrollHeight;
-        });
-    }
-
-    function clearTerminal() {
-        document.getElementById('terminalOutput').textContent = '$ ready';
-    }
-
-    // ---- Stats ----
-    function loadStats() {
-        const roomId = document.getElementById('statsRoomId').value.trim();
-        const userId = document.getElementById('statsUserId').value.trim();
-        let url = '/stats';
-        const params = [];
-        if (roomId) params.push('roomId=' + encodeURIComponent(roomId));
-        if (userId) params.push('userId=' + encodeURIComponent(userId));
-        if (params.length) url += '?' + params.join('&');
-
-        document.getElementById('statsContent').innerHTML =
-            '<p style="color:var(--text-muted);text-align:center;padding:2rem;"><span class="loading"></span> Loading...</p>';
-
-        fetch(url)
-            .then(r => r.json())
-            .then(data => renderStats(data, roomId, userId))
-            .catch(e => {
-                document.getElementById('statsContent').innerHTML =
-                    '<p style="color:var(--error-color);padding:1rem;">Error: ' + e.message + '</p>';
-            });
-    }
-
-    function renderStats(data, roomId, userId) {
-        let html = '';
-
-        // Summary cards
-        if (data.roomStats) {
-            const totalMsgs = data.roomStats.reduce((s, r) => s + parseInt(r.msg_count || 0), 0);
-            html += `<div class="stats-grid">
-                <div class="stat-card"><div class="stat-value">${data.roomStats.length}</div><div class="stat-label">Active Rooms</div></div>
-                <div class="stat-card"><div class="stat-value">${totalMsgs.toLocaleString()}</div><div class="stat-label">Total Messages</div></div>
-            </div>`;
-        }
-
-        // Hourly usage chart
-        if (data.hourlyUsage && data.hourlyUsage.length > 0) {
-            const byHour = new Array(24).fill(0);
-            data.hourlyUsage.forEach(r => { byHour[parseInt(r.hour)] = parseInt(r.count || 0); });
-            const maxVal = Math.max(...byHour, 1);
-            const title = userId ? `User ${userId} Hourly Activity` : 'Bot Hourly Activity';
-            html += `<div class="hour-chart-wrap">
-                <h3 style="color:var(--primary-light);font-size:1rem;font-weight:700;margin-bottom:0.75rem;">
-                    <i class="fas fa-clock"></i> ${title}
-                </h3>
-                <div class="hour-chart">` +
-                byHour.map((v, h) =>
-                    `<div class="hour-bar" style="height:${Math.round((v/maxVal)*100)}%" data-label="${h}" title="${h}시: ${v}회"></div>`
-                ).join('') +
-                `</div><div style="display:flex;justify-content:space-between;font-size:0.6rem;color:var(--text-muted);margin-top:22px;">
-                    <span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span>
-                </div></div>`;
-        }
-
-        // Room stats table
-        if (data.roomStats && data.roomStats.length > 0) {
-            html += buildTable(
-                'Room Statistics',
-                'fas fa-comments',
-                ['Chat ID', 'Messages', 'Last Activity'],
-                data.roomStats,
-                r => [r.chat_id, r.msg_count, r.last_activity ? formatUnixTimestamp(parseInt(r.last_activity)) : '-']
-            );
-        }
-
-        // User stats table
-        if (data.userStats && data.userStats.length > 0) {
-            const isHourly = data.userStats[0] && data.userStats[0].hour !== undefined;
-            if (isHourly) {
-                html += buildTable(
-                    `User ${userId} in Room ${roomId} — Hourly`,
-                    'fas fa-user-clock',
-                    ['Hour', 'Messages'],
-                    data.userStats,
-                    r => [r.hour + 'h', r.msg_count]
-                );
+            const dot  = document.getElementById('statusDot');
+            const txt  = document.getElementById('statusText');
+            if (data.isObserving) {
+                dot.className = 'dot good'; txt.textContent = '관찰 중';
             } else {
-                html += buildTable(
-                    roomId ? `Users in Room ${roomId}` : 'User Stats',
-                    'fas fa-users',
-                    ['User ID', 'Messages', 'First Message', 'Last Message'],
-                    data.userStats,
-                    r => [r.user_id, r.msg_count,
-                        r.first_at ? formatUnixTimestamp(parseInt(r.first_at)) : '-',
-                        r.last_at  ? formatUnixTimestamp(parseInt(r.last_at))  : '-']
-                );
+                dot.className = 'dot bad'; txt.textContent = '중지됨';
             }
-        }
-
-        if (!html) html = '<p style="color:var(--text-muted);text-align:center;padding:2rem;">No data available for the given parameters.</p>';
-        document.getElementById('statsContent').innerHTML = html;
-    }
-
-    function buildTable(title, icon, headers, rows, rowFn) {
-        let html = `<div style="margin-bottom:2rem;">
-            <h3 style="color:var(--primary-light);font-size:1rem;font-weight:700;margin-bottom:1rem;">
-                <i class="${icon}"></i> ${title}
-            </h3>
-            <div style="overflow-x:auto;">
-            <table class="log-table"><tr>` +
-            headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-        rows.forEach(r => {
-            html += '<tr>' + rowFn(r).map(v => `<td>${v ?? ''}</td>`).join('') + '</tr>';
+            if (data.lastLogs) {
+                allLogs = data.lastLogs;
+                buildRooms(allLogs);
+            }
+        })
+        .catch(() => {
+            document.getElementById('statusDot').className = 'dot bad';
+            document.getElementById('statusText').textContent = '오류';
         });
-        html += '</table></div></div>';
-        return html;
+}
+
+// ── room building ──
+function buildRooms(logs) {
+    const map = {};
+    for (const log of logs) {
+        const cid = log.chat_id || '?';
+        if (!map[cid]) map[cid] = { name: null, logs: [], lastTs: 0 };
+        if (log.room_name) map[cid].name = log.room_name;
+        map[cid].logs.push(log);
+        const ts = parseInt(log.created_at || 0);
+        if (ts > map[cid].lastTs) map[cid].lastTs = ts;
+    }
+    // sort each room's logs oldest→newest
+    for (const cid of Object.keys(map)) {
+        map[cid].logs.sort((a,b) => parseInt(a.created_at||0) - parseInt(b.created_at||0));
+    }
+    rooms = map;
+    renderRoomList(Object.keys(map).sort((a,b) => (map[b].lastTs||0) - (map[a].lastTs||0)));
+    if (activeRoom && map[activeRoom]) renderMessages(activeRoom);
+}
+
+function roomLabel(cid) {
+    return rooms[cid]?.name || ('Room ' + cid);
+}
+
+function renderRoomList(cids) {
+    const container = document.getElementById('roomList');
+    const q = document.getElementById('roomSearch').value.toLowerCase().trim();
+    const filtered = q ? cids.filter(cid => roomLabel(cid).toLowerCase().includes(q) || cid.includes(q)) : cids;
+
+    if (!filtered.length) {
+        container.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text3);font-size:.8rem;">검색 결과 없음</div>';
+        return;
     }
 
-    // ---- Generic form submit ----
-    function submitForm(endpoint, formId, responseAreaId, postDataOverride) {
-        const form = document.getElementById(formId);
-        const responseArea = document.getElementById(responseAreaId);
+    container.innerHTML = filtered.map(cid => {
+        const room = rooms[cid];
+        const last = room.logs[room.logs.length - 1] || {};
+        const preview = (last.message || '').slice(0, 30) || '(첨부파일)';
+        const time = last.created_at ? fmtTime(parseInt(last.created_at)) : '';
+        const initial = roomLabel(cid).charAt(0).toUpperCase();
+        const isActive = cid === activeRoom ? 'active' : '';
+        const count = room.logs.length;
+        return `<div class="room-item ${isActive}" onclick="selectRoom('${cid}')">
+            <div class="room-avatar">${initial}</div>
+            <div class="room-info">
+                <div class="room-name">${esc(roomLabel(cid))}</div>
+                <div class="room-preview">${esc(preview)}</div>
+            </div>
+            <div class="room-meta">
+                <div class="room-time">${time}</div>
+                <div class="room-badge">${count}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
 
-        if (responseArea) {
-            responseArea.style.display = 'block';
-            responseArea.textContent = 'Sending request...';
-        }
+function filterRooms(q) {
+    const cids = Object.keys(rooms).sort((a,b) => (rooms[b].lastTs||0) - (rooms[a].lastTs||0));
+    renderRoomList(cids);
+}
 
-        let formData = {};
-        if (postDataOverride) {
-            formData = postDataOverride;
+function selectRoom(cid) {
+    activeRoom = cid;
+    const cids = Object.keys(rooms).sort((a,b) => (rooms[b].lastTs||0) - (rooms[a].lastTs||0));
+    renderRoomList(cids);
+    renderMessages(cid);
+}
+
+function renderMessages(cid) {
+    const room = rooms[cid];
+    if (!room) return;
+
+    document.getElementById('msgEmpty').style.display = 'none';
+    const header = document.getElementById('msgHeader');
+    const list   = document.getElementById('msgList');
+    header.style.display = 'flex';
+    list.style.display   = 'flex';
+
+    document.getElementById('msgRoomAvatar').textContent = roomLabel(cid).charAt(0).toUpperCase();
+    document.getElementById('msgRoomName').textContent = roomLabel(cid);
+    document.getElementById('msgRoomId').textContent = 'ID: ' + cid;
+
+    list.innerHTML = room.logs.map(log => {
+        const isMine = log.user_id && String(log.user_id) === String(window._botId || '');
+        const sender = log.sender_name || ('User ' + (log.user_id||'?'));
+        const ts = log.created_at ? fmtFull(parseInt(log.created_at)) : '';
+        const initial = sender.charAt(0).toUpperCase();
+        return `<div class="msg-bubble-wrap${isMine?' mine':''}">
+            <div class="bubble-avatar">${initial}</div>
+            <div class="bubble-body">
+                <div class="bubble-sender">${esc(sender)}</div>
+                <div class="bubble">${esc(log.message || '(빈 메시지)')}</div>
+                <div class="bubble-time">${ts}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    list.scrollTop = list.scrollHeight;
+}
+
+function copyRoomId() {
+    if (!activeRoom) return;
+    navigator.clipboard.writeText(activeRoom).then(() => alert('Room ID 복사됨: ' + activeRoom));
+}
+
+// ── helpers ──
+function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function fmtTime(ts) {
+    const d = new Date(ts * 1000);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) {
+        return pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    return (d.getMonth()+1) + '/' + d.getDate();
+}
+
+function fmtFull(ts) {
+    const d = new Date(ts * 1000);
+    return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
+
+// ── token ──
+function loadToken() {
+    document.getElementById('tokenBox').textContent = '불러오는 중...';
+    fetch('/aot').then(r=>r.json()).then(d => {
+        tokenData = d.aot;
+        window._botId = d.aot?.user_id || d.aot?.userId;
+        document.getElementById('tokenBox').textContent = JSON.stringify(d.aot, null, 2);
+    }).catch(e => { document.getElementById('tokenBox').textContent = '오류: ' + e.message; });
+}
+
+function copyToken() {
+    if (!tokenData) { alert('먼저 Load Token을 클릭하세요.'); return; }
+    navigator.clipboard.writeText(JSON.stringify(tokenData,null,2)).then(()=>alert('복사됨'));
+}
+
+// ── exec ──
+function runExec() {
+    const cmd = document.getElementById('execInput').value.trim();
+    if (!cmd) return;
+    const out = document.getElementById('termOut');
+    out.textContent += '\n$ ' + cmd + '\n';
+    out.scrollTop = out.scrollHeight;
+    document.getElementById('execInput').value = '';
+
+    fetch('/exec', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({command:cmd}) })
+        .then(r=>r.json())
+        .then(d => {
+            out.textContent += (d.stdout||'(출력 없음)') + '\n[exit: ' + d.exitCode + ']\n';
+            out.scrollTop = out.scrollHeight;
+        })
+        .catch(e => { out.textContent += '오류: ' + e.message + '\n'; out.scrollTop = out.scrollHeight; });
+}
+function clearTerm() { document.getElementById('termOut').textContent = '$ 준비'; }
+
+// ── reply ──
+function updateReplyPlaceholder() {
+    const t = document.getElementById('replyType').value;
+    const ta = document.getElementById('replyData');
+    if (t==='image') ta.placeholder='Base64 이미지 데이터';
+    else if (t==='image_multiple') ta.placeholder='["base64_1","base64_2"]';
+    else if (t==='file') ta.placeholder='/sdcard/iris_tmp/audio.mp3';
+    else ta.placeholder='메시지 내용';
+}
+
+function sendReply() {
+    const raw = document.getElementById('replyRaw').value.trim();
+    let body;
+    if (raw) {
+        try { body = JSON.parse(raw); } catch(e) { alert('JSON 파싱 오류: '+e.message); return; }
+    } else {
+        const t = document.getElementById('replyType').value;
+        const data = t==='image_multiple' ? JSON.parse(document.getElementById('replyData').value) : document.getElementById('replyData').value;
+        body = { room: document.getElementById('replyRoom').value, type: t, data };
+    }
+    const resEl = document.getElementById('replyRes');
+    resEl.style.display = 'block'; resEl.textContent = '전송 중...';
+    fetch('/reply', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+        .then(r=>r.json()).then(d=>{ resEl.textContent = JSON.stringify(d,null,2); })
+        .catch(e=>{ resEl.textContent='오류: '+e.message; });
+}
+
+// ── query ──
+function runQuery() {
+    const sql  = document.getElementById('querySql').value;
+    const bind = document.getElementById('queryBind').value.trim();
+    let body = { query: sql };
+    if (bind) { try { body.bind = JSON.parse(bind); } catch(e) { alert('JSON 오류: '+e); return; } }
+    const resEl = document.getElementById('queryRes');
+    resEl.style.display='block'; resEl.textContent='실행 중...';
+    fetch('/query', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) })
+        .then(r=>r.json()).then(d=>{ resEl.textContent=JSON.stringify(d,null,2); })
+        .catch(e=>{ resEl.textContent='오류: '+e.message; });
+}
+
+// ── config ──
+function updateConfig(type, value) {
+    let postData = {};
+    if      (type==='endpoint') postData = {endpoint:value};
+    else if (type==='botname')  postData = {botname:value};
+    else if (type==='dbrate'||type==='sendrate') postData = {rate:value};
+    else if (type==='botport')  postData = {port:value};
+    fetch('/config/'+type, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(postData) })
+        .then(r=>r.json()).then(d=>{ if(d.success){alert('저장됨');location.reload();}else alert('오류: '+(d.message||d.error)); })
+        .catch(e=>alert('오류: '+e.message));
+}
+
+// ── stats ──
+function loadStats() {
+    const rid = document.getElementById('statsRoom').value.trim();
+    const uid = document.getElementById('statsUser').value.trim();
+    let url = '/stats';
+    const p = [];
+    if (rid) p.push('roomId='+encodeURIComponent(rid));
+    if (uid) p.push('userId='+encodeURIComponent(uid));
+    if (p.length) url += '?' + p.join('&');
+
+    document.getElementById('statsOut').innerHTML = '<p style="color:var(--text3);text-align:center;padding:2rem;">불러오는 중...</p>';
+    fetch(url).then(r=>r.json()).then(d=>renderStats(d,rid,uid)).catch(e=>{
+        document.getElementById('statsOut').innerHTML = '<p style="color:var(--error);padding:1rem;">오류: '+e.message+'</p>';
+    });
+}
+
+function renderStats(data, rid, uid) {
+    let html = '';
+
+    if (data.roomStats && data.roomStats.length) {
+        const total = data.roomStats.reduce((s,r)=>s+parseInt(r.msg_count||0),0);
+        html += `<div class="stats-summary">
+            <div class="stat-card"><div class="stat-val">${data.roomStats.length}</div><div class="stat-lbl">활성 방</div></div>
+            <div class="stat-card"><div class="stat-val">${total.toLocaleString()}</div><div class="stat-lbl">총 메시지</div></div>
+        </div>`;
+    }
+
+    if (data.hourlyUsage && data.hourlyUsage.length) {
+        const byHour = new Array(24).fill(0);
+        data.hourlyUsage.forEach(r => byHour[parseInt(r.hour)] = parseInt(r.count||0));
+        const mx = Math.max(...byHour, 1);
+        const title = uid ? `User ${uid} 시간대별 활동` : '봇 시간대별 활동';
+        html += `<div class="hour-wrap">
+            <div style="font-size:.9rem;font-weight:700;color:var(--primary-light);margin-bottom:.75rem;">
+                <i class="fas fa-clock"></i> ${title}
+            </div>
+            <div class="hour-chart">` +
+            byHour.map((v,h) =>
+                `<div class="hour-bar" style="height:${Math.max(2,Math.round(v/mx*100))}%" data-h="${h}" title="${h}시: ${v}회"></div>`
+            ).join('') +
+            `</div>
+            <div class="hour-axis"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div>
+        </div>`;
+    }
+
+    if (data.roomStats && data.roomStats.length) {
+        html += mkTable('방별 메시지 수', 'fas fa-comments',
+            ['Chat ID','메시지 수','마지막 활동'],
+            data.roomStats, r=>[r.chat_id, r.msg_count, r.last_activity?fmtFull(parseInt(r.last_activity)):'-']);
+    }
+
+    if (data.userStats && data.userStats.length) {
+        const isHourly = data.userStats[0].hour !== undefined;
+        if (isHourly) {
+            html += mkTable(`User ${uid} / Room ${rid} 시간대별`, 'fas fa-user-clock',
+                ['시간대','메시지 수'], data.userStats, r=>[r.hour+'h', r.msg_count]);
         } else {
-            const rawJsonTextarea = form ? form.querySelector('[name="rawJson"]') : null;
-            const rawJson = rawJsonTextarea ? rawJsonTextarea.value.trim() : '';
-
-            if (rawJson) {
-                try { formData = JSON.parse(rawJson); }
-                catch (e) { if (responseArea) responseArea.textContent = 'Error parsing raw JSON: ' + e.message; return; }
-            } else if (form) {
-                if (endpoint === '/query') {
-                    formData['query'] = document.getElementById('querySql').value;
-                    const bindVal = document.getElementById('queryBind').value.trim();
-                    if (bindVal) {
-                        try { formData['bind'] = JSON.parse(bindVal); }
-                        catch (e) { alert('JSON parse error: ' + e); return; }
-                    }
-                } else {
-                    const typeEl = form.querySelector('[name="type"]');
-                    const dataEl = form.querySelector('[name="data"]');
-                    const msgType = typeEl ? typeEl.value : 'text';
-
-                    formData['data'] = msgType === 'image_multiple' ? JSON.parse(dataEl.value) : dataEl.value;
-                    for (const el of form.elements) {
-                        if (el.name && el.name !== 'rawJson' && el.name !== 'data' && el.name !== 'type')
-                            formData[el.name] = el.value;
-                    }
-                    if (typeEl) formData['type'] = typeEl.value;
-                }
-            }
+            html += mkTable(rid ? `Room ${rid} 유저별` : '유저별', 'fas fa-users',
+                ['User ID','메시지 수','처음','마지막'],
+                data.userStats, r=>[r.user_id, r.msg_count,
+                    r.first_at?fmtFull(parseInt(r.first_at)):'-',
+                    r.last_at?fmtFull(parseInt(r.last_at)):'-']);
         }
-
-        fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (responseArea) responseArea.textContent = JSON.stringify(data, null, 2);
-            if (endpoint.startsWith('/config/')) {
-                if (data.success) { alert('Config updated: ' + data.message); location.reload(); }
-                else alert('Config update failed: ' + data.error);
-            }
-        })
-        .catch(e => { if (responseArea) responseArea.textContent = 'Error: ' + e.message; });
     }
 
-    function updateConfig(type, value) {
-        let postData = {};
-        if      (type === 'endpoint') postData = { endpoint: value };
-        else if (type === 'botname')  postData = { botname: value };
-        else if (type === 'dbrate' || type === 'sendrate') postData = { rate: value };
-        else if (type === 'botport')  postData = { port: value };
-        submitForm('/config/' + type, null, null, postData);
-    }
+    if (!html) html = '<p style="color:var(--text3);text-align:center;padding:2rem;">데이터 없음</p>';
+    document.getElementById('statsOut').innerHTML = html;
+}
 
-    function updateReplyDataPlaceholder() {
-        const type = document.getElementById('replyType').value;
-        const ta = document.getElementById('replyData');
-        if (type === 'image') ta.placeholder = 'Enter base64 encoded image data';
-        else if (type === 'image_multiple') ta.placeholder = 'Enter base64 encoded images JSON Array, e.g. ["data1","data2"]';
-        else if (type === 'file') ta.placeholder = '/sdcard/iris_tmp/example.mp3';
-        else ta.placeholder = 'Enter message text';
-    }
-
-    function clearEndpoint() {
-        document.getElementById('newWebServerEndpoint').value = '';
-        updateConfig('endpoint', '');
-    }
+function mkTable(title, icon, heads, rows, fn) {
+    return `<div style="margin-bottom:2rem;">
+        <div style="font-size:.9rem;font-weight:700;color:var(--primary-light);margin-bottom:.75rem;">
+            <i class="${icon}"></i> ${title}
+        </div>
+        <div style="overflow-x:auto;">
+        <table class="data-table">
+            <tr>${heads.map(h=>`<th>${h}</th>`).join('')}</tr>
+            ${rows.map(r=>'<tr>'+fn(r).map(v=>`<td>${v??''}</td>`).join('')+'</tr>').join('')}
+        </table></div></div>`;
+}
 </script>
-<div id="configResponseArea" style="display:none;"></div>
 </body>
-
 </html>
