@@ -91,8 +91,6 @@ class ObserverHelper(
                                 println("failed to decrypt attachment: $e")
                             }
 
-                            storeDecryptedLog(cursor, message)
-
                             val raw = mutableMapOf<String, String?>()
                             val advancedPlainSerialized = mutableMapOf<String, MutableMap<String, Any?>?>()
 
@@ -151,6 +149,8 @@ class ObserverHelper(
                                 }
                             }
 
+                            storeDecryptedLog(cursor, message, roomName, senderName)
+
                             val data = JSONObject(
                                 mapOf(
                                     "msg" to message,
@@ -207,13 +207,15 @@ class ObserverHelper(
     }
 
     @Synchronized
-    private fun storeDecryptedLog(cursor: Cursor, decryptedMessage: String?) {
+    private fun storeDecryptedLog(cursor: Cursor, decryptedMessage: String?, roomName: String?, senderName: String?) {
         val logEntry: MutableMap<String, String?> = HashMap()
         logEntry["_id"] = cursor.getString(cursor.getColumnIndexOrThrow("_id"))
         logEntry["chat_id"] = cursor.getString(cursor.getColumnIndexOrThrow("chat_id"))
         logEntry["user_id"] = cursor.getString(cursor.getColumnIndexOrThrow("user_id"))
         logEntry["message"] = decryptedMessage
         logEntry["created_at"] = cursor.getString(cursor.getColumnIndexOrThrow("created_at"))
+        logEntry["room_name"] = roomName
+        logEntry["sender_name"] = senderName
 
         lastDecryptedLogs.addFirst(logEntry)
         if (lastDecryptedLogs.size > MAX_LOGS_STORED) {
@@ -257,6 +259,6 @@ class ObserverHelper(
         get() = lastDecryptedLogs
 
     companion object {
-        private const val MAX_LOGS_STORED = 50
+        private const val MAX_LOGS_STORED = 200
     }
 }
