@@ -1,5 +1,6 @@
 package party.qwer.iris
 
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import kotlinx.serialization.json.Json
@@ -13,9 +14,9 @@ class KakaoDB {
 
     init {
         try {
-            connection = SQLiteDatabase.openDatabase(
-                "$DB_PATH/KakaoTalk.db", null, SQLiteDatabase.OPEN_READWRITE
-            )
+            connection =
+                SQLiteDatabase.openDatabase(":memory:", null, SQLiteDatabase.OPEN_READWRITE)
+            connection.execSQL("ATTACH DATABASE '$DB_PATH/KakaoTalk.db' AS db1")
             connection.execSQL("ATTACH DATABASE '$DB_PATH/KakaoTalk2.db' AS db2")
             connection.execSQL("ATTACH DATABASE '$DB_PATH/multi_profile_database.db' AS db3")
             Configurable.botId = botUserId
@@ -46,28 +47,43 @@ class KakaoDB {
         }
 
 
-    fun getNameOfUserId(userId: Long): String? {
+    fun queryUserName(chatId: Long, userId: Long): String? {
         val stringUserId = arrayOf(userId.toString())
-        val sql = if (checkNewDb()) {
-            "WITH info AS (SELECT ? AS user_id) " + "SELECT COALESCE(open_chat_member.nickname, friends.name) AS name, " + "COALESCE(open_chat_member.enc, friends.enc) AS enc " + "FROM info " + "LEFT JOIN db2.open_chat_member ON open_chat_member.user_id = info.user_id " + "LEFT JOIN db2.friends ON friends.id = info.user_id;"
-        } else {
-            "SELECT name, enc FROM db2.friends WHERE id = ?"
+        val isOpenLink = (chatId and (2 shl 53)) != 0L;
+
+        val sql = when {
+            isOpenLink && hasTable(
+                "db2", "open_chat_member"
+            ) -> "SELECT nickname AS name, enc FROM db2.open_chat_member WHERE user_id = ?"
+
+            hasTable("db2", "friends") -> "SELECT name, enc FROM db2.friends WHERE id = ?"
+
+            else -> null
         }
 
-        return connection.rawQuery(sql, stringUserId).use { cursor ->
-            if (cursor.moveToNext()) {
-                val encryptedName = cursor.getString(cursor.getColumnIndexOrThrow("name"))
-                val enc = cursor.getInt(cursor.getColumnIndexOrThrow("enc"))
+        if (sql == null) {
+            return null
+        }
 
-                try {
-                    KakaoDecrypt.decrypt(enc, encryptedName, Configurable.botId)
-                } catch (e: Exception) {
-                    System.err.println("Decryption error in getNameOfUserId: $e");
-                    encryptedName
+        val result = runCatching {
+            connection.rawQuery(sql, stringUserId).use { cursor ->
+                cursor.firstOrNull {
+                    getString(getColumnIndexOrThrow("name")) to getInt(getColumnIndexOrThrow("enc"))
                 }
-            } else {
-                null
             }
+        }.onFailure {
+            System.err.println("queryUserName: query error $it")
+        }.getOrNull() ?: return null
+
+        val (encryptedName, enc) = result
+        return runCatching {
+            KakaoDecrypt.decrypt(
+                enc, encryptedName, Configurable.botId
+            )
+        }.onFailure {
+            System.err.println("queryUserName: decrypt error $it")
+        }.getOrElse {
+            encryptedName
         }
     }
 
@@ -76,7 +92,7 @@ class KakaoDB {
         val sender = if (userId == Configurable.botId) {
             Configurable.botName
         } else {
-            getNameOfUserId(userId)
+            queryUserName(chatId, userId)
         }
 
         connection.rawQuery(
@@ -127,11 +143,10 @@ class KakaoDB {
         return dict
     }
 
-
-    fun checkNewDb(): Boolean {
+    fun hasTable(database: String, tableName: String): Boolean {
         return connection.rawQuery(
-            "SELECT name FROM db2.sqlite_master WHERE type='table' AND name='open_chat_member'",
-            null
+            "SELECT name FROM ${database}.sqlite_master WHERE type = 'table' AND name = ?",
+            arrayOf(tableName)
         ).use { cursor ->
             cursor.count > 0
         }
@@ -215,4 +230,11 @@ class KakaoDB {
             return row
         }
     }
+}
+
+inline fun <T> Cursor.firstOrNull(
+    block: Cursor.() -> T
+): T? {
+    if (!moveToFirst()) return null
+    return block()
 }
