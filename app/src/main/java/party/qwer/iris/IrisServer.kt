@@ -258,6 +258,16 @@ class IrisServer(
                     call.respond(ExecResponse(stdout = out, exitCode = if (ok) proc.exitValue() else -1))
                 }
 
+                get("/profile") {
+                    val userId = call.request.queryParameters["userId"]?.toLongOrNull()
+                    if (userId == null) {
+                        call.respond(io.ktor.http.HttpStatusCode.BadRequest, mapOf("error" to "userId required"))
+                        return@get
+                    }
+                    val imageUrl = kakaoDB.getProfileImageUrl(userId)
+                    call.respond(mapOf("imageUrl" to imageUrl))
+                }
+
                 get("/stats") {
                     val roomId = call.request.queryParameters["roomId"]
                     val userId = call.request.queryParameters["userId"]

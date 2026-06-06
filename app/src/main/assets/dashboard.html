@@ -352,8 +352,9 @@
         /* clickable elements */
         .bubble { cursor: pointer; }
         .bubble:hover { opacity: 0.85; }
-        .bubble-avatar { cursor: pointer; }
-        .bubble-avatar:hover { filter: brightness(1.3); }
+        .bubble-avatar { cursor: pointer; overflow: hidden; }
+        .bubble-avatar:hover { filter: brightness(1.2); }
+        .bubble-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
 
         /* scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -855,7 +856,7 @@ function renderMessages(cid) {
         const uid = esc(log.user_id || '');
         const senderEsc = esc(sender);
         return `<div class="msg-bubble-wrap${isMine?' mine':''}">
-            <div class="bubble-avatar" title="${senderEsc} 통계 보기" onclick="showUserStats('${uid}','${cid}','${senderEsc}')">${initial}</div>
+            <div class="bubble-avatar" data-uid="${uid}" data-initial="${initial}" title="${senderEsc} 통계 보기" onclick="showUserStats('${uid}','${cid}','${senderEsc}')">${initial}</div>
             <div class="bubble-body">
                 <div class="bubble-sender" style="cursor:pointer;" onclick="showUserStats('${uid}','${cid}','${senderEsc}')">${senderEsc}</div>
                 <div class="bubble" onclick="showRaw('${esc(log._id)}')">${esc(log.message || '(빈 메시지)')}</div>
@@ -865,6 +866,7 @@ function renderMessages(cid) {
     }).join('');
 
     list.scrollTop = list.scrollHeight;
+    loadProfiles(room.logs);
 }
 
 function copyRoomId() {
@@ -1058,6 +1060,42 @@ function mkTable(title, icon, heads, rows, fn) {
             <tr>${heads.map(h=>`<th>${h}</th>`).join('')}</tr>
             ${rows.map(r=>'<tr>'+fn(r).map(v=>`<td>${v??''}</td>`).join('')+'</tr>').join('')}
         </table></div></div>`;
+}
+
+// ── profile pictures ──
+const profileCache = {}; // userId → url | null | 'loading'
+
+function loadProfiles(logs) {
+    const uids = [...new Set(logs.map(l => l.user_id).filter(Boolean))];
+    for (const uid of uids) {
+        if (uid in profileCache) {
+            if (profileCache[uid]) applyAvatar(uid, profileCache[uid]);
+            continue;
+        }
+        profileCache[uid] = 'loading';
+        fetch('/profile?userId=' + encodeURIComponent(uid))
+            .then(r => r.json())
+            .then(d => {
+                profileCache[uid] = d.imageUrl || null;
+                if (d.imageUrl) applyAvatar(uid, d.imageUrl);
+            })
+            .catch(() => { profileCache[uid] = null; });
+    }
+}
+
+function applyAvatar(uid, url) {
+    document.querySelectorAll(`.bubble-avatar[data-uid="${uid}"]`).forEach(el => {
+        if (el.querySelector('img')) return; // already set
+        el.textContent = '';
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = el.dataset.initial || '';
+        img.onerror = () => {
+            el.removeChild(img);
+            el.textContent = el.dataset.initial || '?';
+        };
+        el.appendChild(img);
+    });
 }
 
 // ── raw JSON modal ──
