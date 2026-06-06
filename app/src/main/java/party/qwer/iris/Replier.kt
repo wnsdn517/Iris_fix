@@ -119,11 +119,11 @@ class Replier {
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or
                 Intent.FLAG_GRANT_READ_URI_PERMISSION
 
-            // text/* files must be sent via ACTION_SEND_MULTIPLE + */* to be received correctly
-            val intent = if (mimeType.startsWith("text/")) {
+            // audio/* and text/* → ACTION_SEND_MULTIPLE (audio sends as voice message, text works correctly)
+            val intent = if (mimeType.startsWith("audio/") || mimeType.startsWith("text/")) {
                 Intent(Intent.ACTION_SEND_MULTIPLE).apply {
                     setPackage("com.kakao.talk")
-                    type = "*/*"
+                    type = if (mimeType.startsWith("text/")) "*/*" else mimeType
                     putParcelableArrayListExtra(Intent.EXTRA_STREAM, arrayListOf(uri))
                     putExtra("key_id", room)
                     putExtra("key_type", 1)
