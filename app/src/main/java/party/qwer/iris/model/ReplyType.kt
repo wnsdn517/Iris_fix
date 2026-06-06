@@ -16,4 +16,7 @@ enum class ReplyType {
 
     @SerialName("file")
     FILE,
+
+    @SerialName("audio")
+    AUDIO,
 }
