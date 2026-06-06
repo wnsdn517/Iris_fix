@@ -88,6 +88,28 @@ class KakaoDB {
     }
 
 
+    fun getProfileImageUrl(userId: Long): String? {
+        val sql = if (checkNewDb()) {
+            "WITH info AS (SELECT ? AS user_id) " +
+            "SELECT COALESCE(ocm.profile_image_url, f.profile_image_url) AS profile_image_url, " +
+            "COALESCE(ocm.enc, f.enc) AS enc " +
+            "FROM info " +
+            "LEFT JOIN db2.open_chat_member ocm ON ocm.user_id = info.user_id " +
+            "LEFT JOIN db2.friends f ON f.id = info.user_id"
+        } else {
+            "SELECT profile_image_url, enc FROM db2.friends WHERE id = ?"
+        }
+        return connection.rawQuery(sql, arrayOf(userId.toString())).use { cursor ->
+            if (cursor.moveToNext()) {
+                val encUrl = cursor.getString(cursor.getColumnIndex("profile_image_url"))
+                val enc   = cursor.getInt(cursor.getColumnIndex("enc"))
+                if (!encUrl.isNullOrEmpty() && encUrl != "{}" && encUrl != "[]") {
+                    try { KakaoDecrypt.decrypt(enc, encUrl, Configurable.botId) } catch (_: Exception) { null }
+                } else null
+            } else null
+        }
+    }
+
     fun getChatInfo(chatId: Long, userId: Long): Array<String?> {
         val sender = if (userId == Configurable.botId) {
             Configurable.botName

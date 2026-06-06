@@ -258,6 +258,16 @@ class IrisServer(
                     call.respond(ExecResponse(stdout = out, exitCode = if (ok) proc.exitValue() else -1))
                 }
 
+                get("/profile") {
+                    val userId = call.request.queryParameters["userId"]?.toLongOrNull()
+                    if (userId == null) {
+                        call.respond(io.ktor.http.HttpStatusCode.BadRequest, mapOf("error" to "userId required"))
+                        return@get
+                    }
+                    val imageUrl = kakaoDB.getProfileImageUrl(userId)
+                    call.respond(mapOf("imageUrl" to imageUrl))
+                }
+
                 get("/stats") {
                     val roomId = call.request.queryParameters["roomId"]
                     val userId = call.request.queryParameters["userId"]
@@ -291,7 +301,10 @@ class IrisServer(
                             )
                         } else {
                             kakaoDB.executeQuery(
-                                "SELECT user_id, COUNT(*) as msg_count, " +
+                                "SELECT user_id, " +
+                                "COUNT(CASE WHEN type NOT IN (2,3) THEN 1 END) as msg_count, " +
+                                "SUM(CASE WHEN type = 2 THEN 1 ELSE 0 END) as join_count, " +
+                                "SUM(CASE WHEN type = 3 THEN 1 ELSE 0 END) as leave_count, " +
                                 "CAST(MIN(created_at) AS TEXT) as first_at, CAST(MAX(created_at) AS TEXT) as last_at " +
                                 "FROM chat_logs WHERE chat_id = ? GROUP BY user_id ORDER BY msg_count DESC",
                                 arrayOf(roomId)
