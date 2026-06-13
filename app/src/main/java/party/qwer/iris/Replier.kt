@@ -110,17 +110,27 @@ class Replier {
         }
 
         private fun sendFileInternal(room: Long, filePath: String) {
+            val t0 = System.currentTimeMillis()
+            System.err.println("[Iris/timing] sendFileInternal: start file=$filePath room=$room")
             val file = File(filePath)
-            mediaScan(Uri.fromFile(file))
-            val uri = getContentUri(file)
             val mimeType = getMimeType(file.extension.lowercase())
+            System.err.println("[Iris/timing] sendFileInternal: ext=${file.extension} mimeType=$mimeType")
+
+            var t = System.currentTimeMillis()
+            mediaScan(Uri.fromFile(file))
+            System.err.println("[Iris/timing] sendFileInternal: mediaScan took ${System.currentTimeMillis()-t}ms")
+
+            t = System.currentTimeMillis()
+            val uri = getContentUri(file)
+            System.err.println("[Iris/timing] sendFileInternal: getContentUri took ${System.currentTimeMillis()-t}ms → $uri")
 
             val flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or
                 Intent.FLAG_GRANT_READ_URI_PERMISSION
 
             // audio/* and text/* → ACTION_SEND_MULTIPLE (audio sends as voice message, text works correctly)
-            val intent = if (mimeType.startsWith("audio/") || mimeType.startsWith("text/")) {
+            val isMultiple = mimeType.startsWith("audio/") || mimeType.startsWith("text/")
+            val intent = if (isMultiple) {
                 Intent(Intent.ACTION_SEND_MULTIPLE).apply {
                     setPackage("com.kakao.talk")
                     type = if (mimeType.startsWith("text/")) "*/*" else mimeType
@@ -141,10 +151,13 @@ class Replier {
                     addFlags(flags)
                 }
             }
+            System.err.println("[Iris/timing] sendFileInternal: intent=${if (isMultiple) "ACTION_SEND_MULTIPLE" else "ACTION_SEND"} type=${intent.type}")
+            t = System.currentTimeMillis()
             try {
                 AndroidHiddenApi.startActivity(intent)
+                System.err.println("[Iris/timing] sendFileInternal: startActivity took ${System.currentTimeMillis()-t}ms → OK (total ${System.currentTimeMillis()-t0}ms)")
             } catch (e: Exception) {
-                System.err.println("Error sending file: $e")
+                System.err.println("[Iris/timing] sendFileInternal: startActivity took ${System.currentTimeMillis()-t}ms → FAIL: $e (total ${System.currentTimeMillis()-t0}ms)")
                 throw e
             }
         }
@@ -246,26 +259,22 @@ class Replier {
         }
 
         private fun sendMultiplePhotosInternal(room: Long, base64ImageDataStrings: List<String>) {
-            val picDir = File(IMAGE_DIR_PATH).apply {
-                if (!exists()) {
-                    mkdirs()
+            val t0 = System.currentTimeMillis()
+            System.err.println("[Iris/timing] sendMultiplePhotos: start count=${base64ImageDataStrings.size} room=$room")
+            val picDir = File(IMAGE_DIR_PATH).apply { if (!exists()) mkdirs() }
+
+            val uris = base64ImageDataStrings.mapIndexed { idx, base64 ->
+                val t = System.currentTimeMillis()
+                val imageFile = File(picDir, "${System.currentTimeMillis()}_${idx}.png").apply {
+                    writeBytes(Base64.decode(base64, Base64.DEFAULT))
                 }
-            }
-
-            val uris = base64ImageDataStrings.mapIndexed { idx, base64ImageDataString ->
-                val decodedImage = Base64.decode(base64ImageDataString, Base64.DEFAULT)
-                val timestamp = System.currentTimeMillis().toString()
-
-                val imageFile = File(picDir, "${timestamp}_${idx}.png").apply {
-                    writeBytes(decodedImage)
-                }
-
-                mediaScan(Uri.fromFile(imageFile))
-                getContentUri(imageFile)
+                val uri = Uri.fromFile(imageFile)
+                System.err.println("[Iris/timing] sendMultiplePhotos: wrote image[$idx] ${imageFile.length()}B in ${System.currentTimeMillis()-t}ms → $uri")
+                uri
             }
 
             if (uris.isEmpty()) {
-                System.err.println("No image URIs created, cannot send multiple photos.")
+                System.err.println("[Iris/timing] sendMultiplePhotos: no URIs created, abort")
                 return
             }
 
@@ -276,17 +285,15 @@ class Replier {
                 putExtra("key_id", room)
                 putExtra("key_type", 1)
                 putExtra("key_from_direct_share", true)
-                addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
 
+            val t1 = System.currentTimeMillis()
             try {
                 AndroidHiddenApi.startActivity(intent)
+                System.err.println("[Iris/timing] sendMultiplePhotos: startActivity took ${System.currentTimeMillis()-t1}ms → OK (total ${System.currentTimeMillis()-t0}ms)")
             } catch (e: Exception) {
-                System.err.println("Error starting activity for sending multiple photos: $e")
+                System.err.println("[Iris/timing] sendMultiplePhotos: startActivity took ${System.currentTimeMillis()-t1}ms → FAIL: $e (total ${System.currentTimeMillis()-t0}ms)")
                 throw e
             }
         }
@@ -346,6 +353,8 @@ class Replier {
         }
 
         private fun getContentUri(file: File): Uri {
+            val t0 = System.currentTimeMillis()
+            System.err.println("[Iris/timing] getContentUri: start file=${file.absolutePath}")
             val appCtx = try {
                 Class.forName("android.app.ActivityThread")
                     .getMethod("currentApplication").invoke(null) as? android.content.Context
@@ -355,33 +364,77 @@ class Replier {
             } catch (_: Exception) { null }
 
             if (appCtx != null) {
+                System.err.println("[Iris/timing] getContentUri: appCtx available, trying FileProvider")
                 return try {
-                    FileProvider.getUriForFile(appCtx, "${appCtx.packageName}.fileprovider", file)
-                } catch (_: Exception) {
-                    queryOrFallbackUri(file)
+                    val uri = FileProvider.getUriForFile(appCtx, "${appCtx.packageName}.fileprovider", file)
+                    System.err.println("[Iris/timing] getContentUri: FileProvider → $uri (${System.currentTimeMillis()-t0}ms)")
+                    uri
+                } catch (e: Exception) {
+                    System.err.println("[Iris/timing] getContentUri: FileProvider failed ($e), falling to queryOrFallbackUri")
+                    queryOrFallbackUri(file).also {
+                        System.err.println("[Iris/timing] getContentUri: → $it (total ${System.currentTimeMillis()-t0}ms)")
+                    }
                 }
             }
-            return queryOrFallbackUri(file)
+            System.err.println("[Iris/timing] getContentUri: no appCtx (app_process), using queryOrFallbackUri")
+            return queryOrFallbackUri(file).also {
+                System.err.println("[Iris/timing] getContentUri: → $it (total ${System.currentTimeMillis()-t0}ms)")
+            }
         }
 
         private fun queryOrFallbackUri(file: File): Uri {
+            val t0 = System.currentTimeMillis()
+            System.err.println("[Iris/timing] queryOrFallbackUri: start file=${file.absolutePath}")
+
             // 1. Already indexed in MediaStore?
-            queryMediaStoreUri(file)?.let { return it }
-            // 2. Synchronous scan (Android 11+/API 30+): returns content:// URI immediately
-            scanAndGetUri(file)?.let { return it }
-            // 3. Direct insert into MediaStore
-            insertMediaStoreEntry(file)?.let { return it }
-            // 4. Force async scan, poll for up to ~2s
-            mediaScanAm(file)
-            for (delay in longArrayOf(300L, 600L, 1000L)) {
-                Thread.sleep(delay)
-                queryMediaStoreUri(file)?.let { return it }
+            var t = System.currentTimeMillis()
+            queryMediaStoreUri(file)?.let {
+                System.err.println("[Iris/timing] queryOrFallbackUri: step1/query took ${System.currentTimeMillis()-t}ms → HIT $it (total ${System.currentTimeMillis()-t0}ms)")
+                return it
             }
-            return Uri.fromFile(file)
+            System.err.println("[Iris/timing] queryOrFallbackUri: step1/query took ${System.currentTimeMillis()-t}ms → miss")
+
+            // 2. Synchronous scan (Android 11+/API 30+): returns content:// URI immediately
+            t = System.currentTimeMillis()
+            scanAndGetUri(file)?.let {
+                System.err.println("[Iris/timing] queryOrFallbackUri: step2/scan took ${System.currentTimeMillis()-t}ms → HIT $it (total ${System.currentTimeMillis()-t0}ms)")
+                return it
+            }
+            System.err.println("[Iris/timing] queryOrFallbackUri: step2/scan took ${System.currentTimeMillis()-t}ms → miss")
+
+            // 3. Direct insert into MediaStore
+            t = System.currentTimeMillis()
+            insertMediaStoreEntry(file)?.let {
+                System.err.println("[Iris/timing] queryOrFallbackUri: step3/insert took ${System.currentTimeMillis()-t}ms → HIT $it (total ${System.currentTimeMillis()-t0}ms)")
+                return it
+            }
+            System.err.println("[Iris/timing] queryOrFallbackUri: step3/insert took ${System.currentTimeMillis()-t}ms → miss")
+
+            // 4. Force async scan, poll for up to ~2s
+            t = System.currentTimeMillis()
+            mediaScanAm(file)
+            System.err.println("[Iris/timing] queryOrFallbackUri: step4/mediaScanAm took ${System.currentTimeMillis()-t}ms")
+            for ((idx, delayMs) in longArrayOf(300L, 600L, 1000L).withIndex()) {
+                Thread.sleep(delayMs)
+                val tPoll = System.currentTimeMillis()
+                queryMediaStoreUri(file)?.let {
+                    System.err.println("[Iris/timing] queryOrFallbackUri: step4/poll[$idx] sleep=${delayMs}ms query took ${System.currentTimeMillis()-tPoll}ms → HIT $it (total ${System.currentTimeMillis()-t0}ms)")
+                    return it
+                }
+                System.err.println("[Iris/timing] queryOrFallbackUri: step4/poll[$idx] sleep=${delayMs}ms query took ${System.currentTimeMillis()-tPoll}ms → miss")
+            }
+
+            val fallback = Uri.fromFile(file)
+            System.err.println("[Iris/timing] queryOrFallbackUri: step5/fallback → $fallback (total ${System.currentTimeMillis()-t0}ms)")
+            return fallback
         }
 
         private fun queryMediaStoreUri(file: File): Uri? {
-            val tableUri = mediaTableUri(file.extension.lowercase()) ?: return null
+            val t0 = System.currentTimeMillis()
+            val tableUri = mediaTableUri(file.extension.lowercase()) ?: run {
+                System.err.println("[Iris/timing] queryMediaStoreUri: no table for ext=${file.extension} → null")
+                return null
+            }
             val paths = listOfNotNull(
                 try { file.canonicalPath } catch (_: Exception) { null },
                 file.absolutePath
@@ -390,6 +443,7 @@ class Replier {
             // In-process via ContentResolver (fastest, no shell spawn)
             systemContext?.contentResolver?.let { resolver ->
                 for (path in paths) {
+                    val tq = System.currentTimeMillis()
                     val cursor = resolver.query(
                         tableUri,
                         arrayOf(MediaStore.MediaColumns._ID),
@@ -398,22 +452,33 @@ class Replier {
                     ) ?: continue
                     cursor.use {
                         if (it.moveToFirst()) {
-                            return ContentUris.withAppendedId(tableUri, it.getLong(0))
+                            val uri = ContentUris.withAppendedId(tableUri, it.getLong(0))
+                            System.err.println("[Iris/timing] queryMediaStoreUri: resolver.query took ${System.currentTimeMillis()-tq}ms → HIT $uri")
+                            return uri
                         }
                     }
+                    System.err.println("[Iris/timing] queryMediaStoreUri: resolver.query took ${System.currentTimeMillis()-tq}ms → miss for $path")
                 }
+                System.err.println("[Iris/timing] queryMediaStoreUri: resolver all miss (${System.currentTimeMillis()-t0}ms)")
                 return null
             }
 
             // Fallback: shell `content query`
+            System.err.println("[Iris/timing] queryMediaStoreUri: systemContext=null, shell fallback")
             val sub = when (tableUri) {
                 MediaStore.Audio.Media.EXTERNAL_CONTENT_URI -> "audio/media"
                 MediaStore.Video.Media.EXTERNAL_CONTENT_URI -> "video/media"
                 else -> "images/media"
             }
             for (path in paths) {
-                runMediaStoreQuery("content://media/external/$sub", path)?.let { return it }
+                val ts = System.currentTimeMillis()
+                runMediaStoreQuery("content://media/external/$sub", path)?.let {
+                    System.err.println("[Iris/timing] queryMediaStoreUri: shell.query took ${System.currentTimeMillis()-ts}ms → HIT $it")
+                    return it
+                }
+                System.err.println("[Iris/timing] queryMediaStoreUri: shell.query took ${System.currentTimeMillis()-ts}ms → miss for $path")
             }
+            System.err.println("[Iris/timing] queryMediaStoreUri: shell all miss (${System.currentTimeMillis()-t0}ms)")
             return null
         }
 
@@ -433,19 +498,28 @@ class Replier {
         }
 
         private fun scanAndGetUri(file: File): Uri? {
+            val t0 = System.currentTimeMillis()
             val path = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
 
             // In-process via ContentResolver.call (what `content call` runs internally)
             systemContext?.contentResolver?.let { resolver ->
                 return try {
+                    val t = System.currentTimeMillis()
                     @Suppress("DEPRECATION")
-                    resolver.call(Uri.parse("content://media"), "scan_file", path, null)
-                        ?.getParcelable("uri")
-                } catch (_: Exception) { null }
+                    val result = resolver.call(Uri.parse("content://media"), "scan_file", path, null)
+                        ?.getParcelable<Uri>("uri")
+                    System.err.println("[Iris/timing] scanAndGetUri: resolver.call took ${System.currentTimeMillis()-t}ms → ${result ?: "null"}")
+                    result
+                } catch (e: Exception) {
+                    System.err.println("[Iris/timing] scanAndGetUri: resolver.call failed in ${System.currentTimeMillis()-t0}ms: $e")
+                    null
+                }
             }
 
             // Fallback: shell `content call --method scan_file`
+            System.err.println("[Iris/timing] scanAndGetUri: systemContext=null, shell fallback")
             return try {
+                val t = System.currentTimeMillis()
                 val proc = ProcessBuilder(
                     "content", "call",
                     "--uri", "content://media",
@@ -453,37 +527,63 @@ class Replier {
                     "--arg", path
                 ).redirectErrorStream(true).start()
                 val output = proc.inputStream.bufferedReader().readText()
-                if (!proc.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) { proc.destroyForcibly(); return null }
+                if (!proc.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                    proc.destroyForcibly()
+                    System.err.println("[Iris/timing] scanAndGetUri: shell.call timed out after ${System.currentTimeMillis()-t}ms")
+                    return null
+                }
                 // Result: Bundle[{uri=content://media/external/audio/media/123}]
-                Regex("uri=(content://[^}\\s,]+)").find(output)?.groupValues?.get(1)?.let { Uri.parse(it) }
-            } catch (_: Exception) { null }
+                val result = Regex("uri=(content://[^}\\s,]+)").find(output)?.groupValues?.get(1)?.let { Uri.parse(it) }
+                System.err.println("[Iris/timing] scanAndGetUri: shell.call took ${System.currentTimeMillis()-t}ms → ${result ?: "null"}")
+                result
+            } catch (e: Exception) {
+                System.err.println("[Iris/timing] scanAndGetUri: shell.call failed: $e")
+                null
+            }
         }
 
         private fun insertMediaStoreEntry(file: File): Uri? {
+            val t0 = System.currentTimeMillis()
             val mimeType = getMimeType(file.extension.lowercase())
             val tableUri = when {
                 mimeType.startsWith("audio/") -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
                 mimeType.startsWith("video/") -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-                else -> return null
+                else -> {
+                    System.err.println("[Iris/timing] insertMediaStoreEntry: skipped for mimeType=$mimeType → null")
+                    return null
+                }
             }
             val path = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
 
             // In-process via ContentResolver.insert
             systemContext?.contentResolver?.let { resolver ->
                 return try {
-                    resolver.insert(tableUri, ContentValues().apply {
+                    val t = System.currentTimeMillis()
+                    val result = resolver.insert(tableUri, ContentValues().apply {
                         put(MediaStore.MediaColumns.DATA, path)
                         put(MediaStore.MediaColumns.DISPLAY_NAME, file.name)
                         put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
                     })
-                } catch (_: Exception) { null }
+                    System.err.println("[Iris/timing] insertMediaStoreEntry: resolver.insert took ${System.currentTimeMillis()-t}ms → ${result ?: "null"}")
+                    result
+                } catch (e: Exception) {
+                    System.err.println("[Iris/timing] insertMediaStoreEntry: resolver.insert failed in ${System.currentTimeMillis()-t0}ms: $e")
+                    null
+                }
             }
 
             // Fallback: shell `content insert`
+            System.err.println("[Iris/timing] insertMediaStoreEntry: systemContext=null, shell fallback")
             val sub = if (mimeType.startsWith("audio/")) "audio/media" else "video/media"
             for (volume in listOf("external", "external_primary")) {
-                runMediaStoreInsert("content://media/$volume/$sub", path, file.name, mimeType)?.let { return it }
+                val t = System.currentTimeMillis()
+                runMediaStoreInsert("content://media/$volume/$sub", path, file.name, mimeType)?.let {
+                    System.err.println("[Iris/timing] insertMediaStoreEntry: shell.insert[$volume] took ${System.currentTimeMillis()-t}ms → HIT $it")
+                    return it
+                }
+                System.err.println("[Iris/timing] insertMediaStoreEntry: shell.insert[$volume] took ${System.currentTimeMillis()-t}ms → miss")
             }
+            System.err.println("[Iris/timing] insertMediaStoreEntry: all miss (${System.currentTimeMillis()-t0}ms)")
             return null
         }
 
@@ -505,6 +605,7 @@ class Replier {
 
         private fun mediaScanAm(file: File) {
             val path = try { file.canonicalPath } catch (_: Exception) { file.absolutePath }
+            val t = System.currentTimeMillis()
             try {
                 ProcessBuilder(
                     "am", "broadcast",
@@ -513,7 +614,10 @@ class Replier {
                     "--receiver-foreground"
                 ).redirectErrorStream(true).start()
                     .waitFor(2, java.util.concurrent.TimeUnit.SECONDS)
-            } catch (_: Exception) {}
+                System.err.println("[Iris/timing] mediaScanAm: broadcast took ${System.currentTimeMillis()-t}ms")
+            } catch (e: Exception) {
+                System.err.println("[Iris/timing] mediaScanAm: broadcast failed in ${System.currentTimeMillis()-t}ms: $e")
+            }
         }
 
         private fun mediaScan(uri: Uri) {
