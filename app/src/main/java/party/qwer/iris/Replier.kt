@@ -246,22 +246,15 @@ class Replier {
         }
 
         private fun sendMultiplePhotosInternal(room: Long, base64ImageDataStrings: List<String>) {
-            val picDir = File(IMAGE_DIR_PATH).apply {
-                if (!exists()) {
-                    mkdirs()
+            val picDir = File(IMAGE_DIR_PATH).apply { if (!exists()) mkdirs() }
+
+            // Images are written into KakaoTalk's own external-data directory so KakaoTalk
+            // can read them directly — no MediaStore URI or content:// dance needed.
+            val uris = base64ImageDataStrings.mapIndexed { idx, base64 ->
+                val imageFile = File(picDir, "${System.currentTimeMillis()}_${idx}.png").apply {
+                    writeBytes(Base64.decode(base64, Base64.DEFAULT))
                 }
-            }
-
-            val uris = base64ImageDataStrings.mapIndexed { idx, base64ImageDataString ->
-                val decodedImage = Base64.decode(base64ImageDataString, Base64.DEFAULT)
-                val timestamp = System.currentTimeMillis().toString()
-
-                val imageFile = File(picDir, "${timestamp}_${idx}.png").apply {
-                    writeBytes(decodedImage)
-                }
-
-                mediaScan(Uri.fromFile(imageFile))
-                getContentUri(imageFile)
+                Uri.fromFile(imageFile)
             }
 
             if (uris.isEmpty()) {
@@ -276,11 +269,7 @@ class Replier {
                 putExtra("key_id", room)
                 putExtra("key_type", 1)
                 putExtra("key_from_direct_share", true)
-                addFlags(
-                    Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
 
             try {
