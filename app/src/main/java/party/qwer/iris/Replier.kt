@@ -116,19 +116,11 @@ class Replier {
             val mimeType = getMimeType(file.extension.lowercase())
             System.err.println("[Iris/timing] sendFileInternal: ext=${file.extension} mimeType=$mimeType")
 
-            var t = System.currentTimeMillis()
-            mediaScan(Uri.fromFile(file))
-            System.err.println("[Iris/timing] sendFileInternal: mediaScan took ${System.currentTimeMillis()-t}ms")
+            val uri = Uri.fromFile(file)
+            System.err.println("[Iris/timing] sendFileInternal: uri=$uri")
 
-            t = System.currentTimeMillis()
-            val uri = getContentUri(file)
-            System.err.println("[Iris/timing] sendFileInternal: getContentUri took ${System.currentTimeMillis()-t}ms → $uri")
+            val flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
 
-            val flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-
-            // audio/* and text/* → ACTION_SEND_MULTIPLE (audio sends as voice message, text works correctly)
             val isMultiple = mimeType.startsWith("audio/") || mimeType.startsWith("text/")
             val intent = if (isMultiple) {
                 Intent(Intent.ACTION_SEND_MULTIPLE).apply {
@@ -152,12 +144,12 @@ class Replier {
                 }
             }
             System.err.println("[Iris/timing] sendFileInternal: intent=${if (isMultiple) "ACTION_SEND_MULTIPLE" else "ACTION_SEND"} type=${intent.type}")
-            t = System.currentTimeMillis()
+            val t1 = System.currentTimeMillis()
             try {
                 AndroidHiddenApi.startActivity(intent)
-                System.err.println("[Iris/timing] sendFileInternal: startActivity took ${System.currentTimeMillis()-t}ms → OK (total ${System.currentTimeMillis()-t0}ms)")
+                System.err.println("[Iris/timing] sendFileInternal: startActivity took ${System.currentTimeMillis()-t1}ms → OK (total ${System.currentTimeMillis()-t0}ms)")
             } catch (e: Exception) {
-                System.err.println("[Iris/timing] sendFileInternal: startActivity took ${System.currentTimeMillis()-t}ms → FAIL: $e (total ${System.currentTimeMillis()-t0}ms)")
+                System.err.println("[Iris/timing] sendFileInternal: startActivity took ${System.currentTimeMillis()-t1}ms → FAIL: $e (total ${System.currentTimeMillis()-t0}ms)")
                 throw e
             }
         }
@@ -172,8 +164,7 @@ class Replier {
 
         private fun sendFileWithAttachmentInternal(room: Long, filePath: String, attachment: String) {
             val file = File(filePath)
-            mediaScan(Uri.fromFile(file))
-            val uri = getContentUri(file)
+            val uri = Uri.fromFile(file)
 
             val intent = Intent(Intent.ACTION_SEND).apply {
                 setPackage("com.kakao.talk")
@@ -189,8 +180,7 @@ class Replier {
                 )
                 addFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP
                 )
             }
 
